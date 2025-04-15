@@ -13,5 +13,7 @@ namespace ProjectEstimatorApp.Services
         void RemoveEstimate(string floorName, string roomName, string category);
         IEnumerable<string> GetFloorNames();
         IEnumerable<string> GetRoomNames(string floorName);
+        void AddEstimateToProject(string category);
+        void AddEstimateToFloor(string floorName, string category);
     }
 }

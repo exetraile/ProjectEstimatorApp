@@ -49,6 +49,43 @@ namespace ProjectEstimatorApp.Services
             UpdateModifiedDate();
         }
 
+        // Добавление оценки на уровне проекта
+        public void AddEstimateToProject(string category)
+        {
+            ValidateProjectExists();
+            ValidateName(category, "Estimate category");
+
+            if (_projectManager.CurrentProject.ProjectEstimates.Any(e =>
+                string.Equals(e.Category, category, StringComparison.OrdinalIgnoreCase)))
+                throw new ArgumentException($"Project estimate '{category}' already exists");
+
+            _projectManager.CurrentProject.ProjectEstimates.Add(new Estimate
+            {
+                Category = category.Trim()
+            });
+            UpdateModifiedDate();
+        }
+
+        // Добавление оценки на уровне этажа
+        public void AddEstimateToFloor(string floorName, string category)
+        {
+            ValidateProjectExists();
+            ValidateName(floorName, "Floor name");
+            ValidateName(category, "Estimate category");
+
+            var floor = GetFloor(floorName);
+
+            if (floor.FloorEstimates.Any(e =>
+                string.Equals(e.Category, category, StringComparison.OrdinalIgnoreCase)))
+                throw new ArgumentException($"Floor estimate '{category}' already exists on floor '{floorName}'");
+
+            floor.FloorEstimates.Add(new Estimate
+            {
+                Category = category.Trim()
+            });
+            UpdateModifiedDate();
+        }
+
         public void AddEstimate(string floorName, string roomName, string category)
         {
             ValidateProjectExists();

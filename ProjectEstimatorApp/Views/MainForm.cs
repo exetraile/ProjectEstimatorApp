@@ -101,6 +101,12 @@ namespace ProjectEstimatorApp.Views
                 var projectNode = _projectTree.Nodes.Add(_projectManager.CurrentProject.Name);
                 projectNode.Tag = _projectManager.CurrentProject;
 
+                foreach (var estimate in _projectManager.CurrentProject.ProjectEstimates)
+                {
+                    var estimateNode = projectNode.Nodes.Add(estimate.Category);
+                    estimateNode.Tag = estimate;
+                }
+
                 foreach (var floor in _projectManager.CurrentProject.Floors)
                 {
                     var floorNode = projectNode.Nodes.Add(floor.Name);
@@ -211,20 +217,33 @@ namespace ProjectEstimatorApp.Views
             {
                 if (dialog.ShowDialog() == DialogResult.OK)
                 {
-                    var roomNode = _projectTree.SelectedNode?.Tag is Room room ? room :
-                        _projectTree.SelectedNode?.Parent?.Tag as Room;
-
-                    if (roomNode != null)
+                    // Проверяем, что выбрано (проект, этаж или комната)
+                    if (_projectTree.SelectedNode?.Tag is Project project)
                     {
-                        var floorName = (_projectTree.SelectedNode?.Parent?.Tag as Floor)?.Name ??
-                            (_projectTree.SelectedNode?.Parent?.Parent?.Tag as Floor)?.Name;
-
+                        // Добавляем оценку на уровне проекта
+                        _structureService.AddEstimateToProject(dialog.InputText);
+                    }
+                    else if (_projectTree.SelectedNode?.Tag is Floor floor)
+                    {
+                        // Добавляем оценку на уровне этажа
+                        _structureService.AddEstimateToFloor(floor.Name, dialog.InputText);
+                    }
+                    else if (_projectTree.SelectedNode?.Tag is Room room)
+                    {
+                        // Добавляем оценку на уровне комнаты
+                        var floorName = (_projectTree.SelectedNode?.Parent?.Tag as Floor)?.Name;
                         if (floorName != null)
                         {
-                            _structureService.AddEstimate(floorName, roomNode.Name, dialog.InputText);
-                            InitializeProjectTree();
+                            _structureService.AddEstimate(floorName, room.Name, dialog.InputText);
                         }
                     }
+                    else
+                    {
+                        // Если ничего не выбрано или выбрана оценка, добавляем на уровень проекта по умолчанию
+                        _structureService.AddEstimateToProject(dialog.InputText);
+                    }
+
+                    InitializeProjectTree();
                 }
             }
         }
