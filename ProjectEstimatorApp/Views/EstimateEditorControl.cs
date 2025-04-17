@@ -33,25 +33,36 @@ namespace ProjectEstimatorApp.Views
             _worksGrid = new DataGridView
             {
                 Dock = DockStyle.Top,
-                Height = 150,
-                AutoGenerateColumns = true
+                Height = 200,
+                AutoGenerateColumns = true,
+                BackgroundColor = Color.White,
+                BorderStyle = BorderStyle.None,
+                Font = new Font("Segoe UI", 9)
             };
 
             _materialsGrid = new DataGridView
             {
                 Dock = DockStyle.Top,
-                Height = 150,
-                AutoGenerateColumns = true
+                Height = 200,
+                AutoGenerateColumns = true,
+                BackgroundColor = Color.White,
+                BorderStyle = BorderStyle.None,
+                Font = new Font("Segoe UI", 9)
             };
 
-            _btnAddWork = new Button { Text = "Add Work" };
-            _btnAddMaterial = new Button { Text = "Add Material" };
-            _btnRemoveWork = new Button { Text = "Remove Work" };
-            _btnRemoveMaterial = new Button { Text = "Remove Material" };
+            _btnAddWork = CreateStyledButton("Add Work");
+            _btnAddMaterial = CreateStyledButton("Add Material");
+            _btnRemoveWork = CreateStyledButton("Remove Work");
+            _btnRemoveMaterial = CreateStyledButton("Remove Material");
 
-            _lblWorksTotal = new Label { Text = "Works Total: 0.00" };
-            _lblMaterialsTotal = new Label { Text = "Materials Total: 0.00" };
-            _lblEstimateTotal = new Label { Text = "Estimate Total: 0.00", Font = new Font(DefaultFont, FontStyle.Bold) };
+            _lblWorksTotal = new Label { Text = "Works Total: 0.00", AutoSize = true };
+            _lblMaterialsTotal = new Label { Text = "Materials Total: 0.00", AutoSize = true };
+            _lblEstimateTotal = new Label
+            {
+                Text = "Estimate Total: 0.00",
+                AutoSize = true,
+                Font = new Font("Segoe UI", 9, FontStyle.Bold)
+            };
 
             _btnAddWork.Click += (s, e) => AddWorkItem();
             _btnAddMaterial.Click += (s, e) => AddMaterialItem();
@@ -119,21 +130,49 @@ namespace ProjectEstimatorApp.Views
             }
         }
 
+        private Button CreateStyledButton(string text)
+        {
+            return new Button
+            {
+                Text = text,
+                FlatStyle = FlatStyle.Flat,
+                BackColor = Color.White,
+                Font = new Font("Segoe UI", 9),
+                Height = 30,
+                Margin = new Padding(3)
+            };
+        }
+
         private void SetupLayout()
         {
             var buttonsPanel = new FlowLayoutPanel
             {
                 Dock = DockStyle.Top,
                 FlowDirection = FlowDirection.LeftToRight,
-                Controls = { _btnAddWork, _btnRemoveWork, _btnAddMaterial, _btnRemoveMaterial }
+                BackColor = Color.FromArgb(240, 240, 240),
+                Height = 40,
+                Padding = new Padding(5)
             };
 
             var totalsPanel = new FlowLayoutPanel
             {
                 Dock = DockStyle.Bottom,
                 FlowDirection = FlowDirection.LeftToRight,
-                Controls = { _lblWorksTotal, _lblMaterialsTotal, _lblEstimateTotal }
+                BackColor = Color.FromArgb(240, 240, 240),
+                Height = 40,
+                Padding = new Padding(5)
             };
+
+            buttonsPanel.Controls.AddRange(new Control[] { _btnAddWork, _btnRemoveWork, _btnAddMaterial, _btnRemoveMaterial });
+            totalsPanel.Controls.AddRange(new Control[] { _lblWorksTotal, _lblMaterialsTotal, _lblEstimateTotal });
+
+            Controls.Add(_materialsGrid);
+            Controls.Add(buttonsPanel);
+            Controls.Add(_worksGrid);
+            Controls.Add(totalsPanel);
+
+            BackColor = Color.White;
+
 
             Controls.Add(_materialsGrid);
             Controls.Add(buttonsPanel);

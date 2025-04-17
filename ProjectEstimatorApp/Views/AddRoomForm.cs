@@ -1,5 +1,6 @@
 ﻿// Views/AddRoomForm.cs
 using System;
+using System.Drawing;
 using System.Globalization;
 using System.Windows.Forms;
 
@@ -29,14 +30,39 @@ namespace ProjectEstimatorApp.Views
             Text = "Add Room";
             FormBorderStyle = FormBorderStyle.FixedDialog;
             StartPosition = FormStartPosition.CenterParent;
-            ClientSize = new System.Drawing.Size(300, 180);
+            ClientSize = new Size(350, 200);
+            BackColor = Color.White;
+            Font = new Font("Segoe UI", 9);
         }
 
         private void InitializeControls()
         {
-            txtName = new TextBox { Text = "Room name", Top = 20, Left = 20, Width = 260 };
-            txtWidth = new TextBox { Text = "Width (m)", Top = 50, Left = 20, Width = 260 };
-            txtHeight = new TextBox { Text = "Height (m)", Top = 80, Left = 20, Width = 260 };
+            txtName = new TextBox
+            {
+                Text = "Room name",
+                Top = 20,
+                Left = 20,
+                Width = 310,
+                BorderStyle = BorderStyle.FixedSingle
+            };
+
+            txtWidth = new TextBox
+            {
+                Text = "Width (m)",
+                Top = 60,
+                Left = 20,
+                Width = 310,
+                BorderStyle = BorderStyle.FixedSingle
+            };
+
+            txtHeight = new TextBox
+            {
+                Text = "Height (m)",
+                Top = 100,
+                Left = 20,
+                Width = 310,
+                BorderStyle = BorderStyle.FixedSingle
+            };
 
             txtName.Enter += (s, e) => { if (txtName.Text == "Room name") txtName.Text = ""; };
             txtName.Leave += (s, e) => { if (string.IsNullOrWhiteSpace(txtName.Text)) txtName.Text = "Room name"; };
@@ -47,8 +73,28 @@ namespace ProjectEstimatorApp.Views
             txtHeight.Enter += (s, e) => { if (txtHeight.Text == "Height (m)") txtHeight.Text = ""; };
             txtHeight.Leave += (s, e) => { if (string.IsNullOrWhiteSpace(txtHeight.Text)) txtHeight.Text = "Height (m)"; };
 
-            btnOk = new Button { Text = "OK", DialogResult = DialogResult.OK, Left = 120, Top = 120 };
-            btnCancel = new Button { Text = "Cancel", DialogResult = DialogResult.Cancel, Left = 210, Top = 120 };
+
+            btnOk = new Button
+            {
+                Text = "OK",
+                DialogResult = DialogResult.OK,
+                Left = 180,
+                Top = 140,
+                Width = 80,
+                FlatStyle = FlatStyle.Flat,
+                BackColor = Color.White
+            };
+
+            btnCancel = new Button
+            {
+                Text = "Cancel",
+                DialogResult = DialogResult.Cancel,
+                Left = 270,
+                Top = 140,
+                Width = 80,
+                FlatStyle = FlatStyle.Flat,
+                BackColor = Color.White
+            };
 
             txtWidth.KeyPress += NumericInput_KeyPress;
             txtHeight.KeyPress += NumericInput_KeyPress;

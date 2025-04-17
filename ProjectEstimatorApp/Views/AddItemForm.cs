@@ -1,5 +1,6 @@
 ﻿// Views/AddItemForm.cs
 using System;
+using System.Drawing;
 using System.Windows.Forms;
 
 namespace ProjectEstimatorApp.Views
@@ -30,30 +31,70 @@ namespace ProjectEstimatorApp.Views
             Text = "Add New Item";
             FormBorderStyle = FormBorderStyle.FixedDialog;
             StartPosition = FormStartPosition.CenterParent;
-            ClientSize = new System.Drawing.Size(300, 200);
+            ClientSize = new Size(350, 220);
+            BackColor = Color.White;
+            Font = new Font("Segoe UI", 9);
         }
 
         private void InitializeControls()
         {
-            txtName = new TextBox { Text = "Name", Top = 20, Left = 20, Width = 260 };
-            txtUnit = new TextBox { Text = "Unit", Top = 50, Left = 20, Width = 260 };
-            txtQuantity = new TextBox { Text = "1", Top = 80, Left = 20, Width = 260 };
-            txtPrice = new TextBox { Text = "0", Top = 110, Left = 20, Width = 260 };
+            txtName = new TextBox
+            {
+                Text = "Name",
+                Top = 20,
+                Left = 20,
+                Width = 310,
+                BorderStyle = BorderStyle.FixedSingle
+            };
 
-            txtName.Enter += (s, e) => { if (txtName.Text == "Name") txtName.Text = ""; };
-            txtName.Leave += (s, e) => { if (string.IsNullOrWhiteSpace(txtName.Text)) txtName.Text = "Name"; };
+            txtUnit = new TextBox
+            {
+                Text = "Unit",
+                Top = 60,
+                Left = 20,
+                Width = 310,
+                BorderStyle = BorderStyle.FixedSingle
+            };
 
-            txtUnit.Enter += (s, e) => { if (txtUnit.Text == "Unit") txtUnit.Text = ""; };
-            txtUnit.Leave += (s, e) => { if (string.IsNullOrWhiteSpace(txtUnit.Text)) txtUnit.Text = "Unit"; };
+            txtQuantity = new TextBox
+            {
+                Text = "1",
+                Top = 100,
+                Left = 20,
+                Width = 310,
+                BorderStyle = BorderStyle.FixedSingle
+            };
 
-            txtQuantity.Enter += (s, e) => { if (txtQuantity.Text == "1") txtQuantity.Text = ""; };
-            txtQuantity.Leave += (s, e) => { if (string.IsNullOrWhiteSpace(txtQuantity.Text)) txtQuantity.Text = "1"; };
+            txtPrice = new TextBox
+            {
+                Text = "0",
+                Top = 140,
+                Left = 20,
+                Width = 310,
+                BorderStyle = BorderStyle.FixedSingle
+            };
 
-            txtPrice.Enter += (s, e) => { if (txtPrice.Text == "0") txtPrice.Text = ""; };
-            txtPrice.Leave += (s, e) => { if (string.IsNullOrWhiteSpace(txtPrice.Text)) txtPrice.Text = "0"; };
+            btnOk = new Button
+            {
+                Text = "OK",
+                DialogResult = DialogResult.OK,
+                Top = 180,
+                Left = 180,
+                Width = 80,
+                FlatStyle = FlatStyle.Flat,
+                BackColor = Color.White
+            };
 
-            btnOk = new Button { Text = "OK", DialogResult = DialogResult.OK, Top = 150, Left = 120 };
-            btnCancel = new Button { Text = "Cancel", DialogResult = DialogResult.Cancel, Top = 150, Left = 200 };
+            btnCancel = new Button
+            {
+                Text = "Cancel",
+                DialogResult = DialogResult.Cancel,
+                Top = 180,
+                Left = 270,
+                Width = 80,
+                FlatStyle = FlatStyle.Flat,
+                BackColor = Color.White
+            };
 
             Controls.AddRange(new Control[] { txtName, txtUnit, txtQuantity, txtPrice, btnOk, btnCancel });
         }
