@@ -52,17 +52,14 @@ namespace ProjectEstimatorApp.Models
     {
         public string ProjectName { get; set; }
         public DateTime CalculationDate { get; set; }
-
         public List<EstimateSummary> ProjectEstimates { get; set; } = new List<EstimateSummary>();
         public decimal ProjectWorksTotal { get; set; }
         public decimal ProjectMaterialsTotal { get; set; }
         public decimal ProjectTotal { get; set; }
-
         public List<FloorSummary> FloorSummaries { get; set; } = new List<FloorSummary>();
         public decimal FloorsWorksTotal { get; set; }
         public decimal FloorsMaterialsTotal { get; set; }
         public decimal FloorsTotal { get; set; }
-
         public decimal TotalWorks { get; set; }
         public decimal TotalMaterials { get; set; }
         public decimal OverallTotal { get; set; }
@@ -75,13 +72,10 @@ namespace ProjectEstimatorApp.Models
         public decimal FloorWorksTotal { get; set; }
         public decimal FloorMaterialsTotal { get; set; }
         public decimal FloorTotal { get; set; }
-
         public List<RoomSummary> RoomSummaries { get; set; } = new List<RoomSummary>();
         public decimal RoomsWorksTotal { get; set; }
         public decimal RoomsMaterialsTotal { get; set; }
         public decimal RoomsTotal { get; set; }
-
-        // Общие итоги этажа
         public decimal WorksTotal { get; set; }
         public decimal MaterialsTotal { get; set; }
         public decimal Total { get; set; }
@@ -91,8 +85,6 @@ namespace ProjectEstimatorApp.Models
     {
         public string RoomName { get; set; }
         public double Area { get; set; }
-
-        // Итоги по комнате
         public List<EstimateSummary> Estimates { get; set; } = new List<EstimateSummary>();
         public decimal WorksTotal { get; set; }
         public decimal MaterialsTotal { get; set; }
