@@ -1,8 +1,7 @@
-﻿// Views/TotalsForm.cs
-using System;
-using System.Drawing;
+﻿using System.Drawing;
 using System.Windows.Forms;
 using ProjectEstimatorApp.Models;
+using ProjectEstimatorApp.Styles;
 
 namespace ProjectEstimatorApp.Views
 {
@@ -11,48 +10,52 @@ namespace ProjectEstimatorApp.Views
         public TotalsForm(ProjectSummary summary)
         {
             InitializeComponent();
+            StyleHelper.Forms.ApplyDialogStyle(this);
             InitializeControls(summary);
-            ApplyStyles();
         }
 
         private void InitializeControls(ProjectSummary summary)
         {
             Text = "Project Totals";
-            Width = 800;
-            Height = 600;
-            FormBorderStyle = FormBorderStyle.FixedDialog;
-            StartPosition = FormStartPosition.CenterParent;
+            ClientSize = new Size(800, 600);
 
             var grid = new DataGridView
             {
                 Dock = DockStyle.Fill,
                 AutoGenerateColumns = true,
-                DataSource = summary.FloorSummaries,
-                BackgroundColor = Color.White,
-                BorderStyle = BorderStyle.None
             };
+            StyleHelper.Grids.ApplyDataGridStyle(grid);
+            grid.DataSource = summary.FloorSummaries;
 
-            var totalsPanel = new Panel { Dock = DockStyle.Bottom, Height = 100, BackColor = Color.FromArgb(240, 240, 240) };
-            var lblWorks = new Label { Text = $"Works Total: {summary.TotalWorks:N2}", Left = 20, Top = 20, AutoSize = true };
-            var lblMaterials = new Label { Text = $"Materials Total: {summary.TotalMaterials:N2}", Left = 20, Top = 45, AutoSize = true };
-            var lblOverall = new Label
+            var totalsPanel = new Panel
             {
-                Text = $"Overall Total: {summary.OverallTotal:N2}",
-                Left = 20,
-                Top = 70,
-                AutoSize = true,
-                Font = new Font(DefaultFont, FontStyle.Bold)
+                Dock = DockStyle.Bottom,
+                Height = 120,
+                BackColor = StyleHelper.Config.ElementBackgroundColor,
+                Padding = new Padding(20)
             };
 
-            totalsPanel.Controls.AddRange(new Control[] { lblWorks, lblMaterials, lblOverall });
+            var lblWorks = StyleHelper.Labels.Body($"Works Total: {summary.TotalWorks:N2}", bold: true);
+            lblWorks.ForeColor = StyleHelper.Config.TextColor;
+            lblWorks.Location = new Point(20, 20);
+
+            var lblMaterials = StyleHelper.Labels.Body($"Materials Total: {summary.TotalMaterials:N2}", bold: true);
+            lblMaterials.ForeColor = StyleHelper.Config.TextColor;
+            lblMaterials.Location = new Point(20, 50);
+
+            var lblOverall = StyleHelper.Labels.Header($"Overall Total: {summary.OverallTotal:N2}");
+            lblOverall.ForeColor = StyleHelper.Config.AccentColor;
+            lblOverall.Location = new Point(20, 80);
+
+            totalsPanel.Controls.Add(lblWorks);
+            totalsPanel.Controls.Add(lblMaterials);
+            totalsPanel.Controls.Add(lblOverall);
+
             Controls.Add(grid);
             Controls.Add(totalsPanel);
-        }
 
-        private void ApplyStyles()
-        {
-            BackColor = Color.White;
-            Font = new Font("Segoe UI", 9);
+            BackColor = StyleHelper.Config.BackgroundColor;
+            Font = StyleHelper.Config.NormalFont;
         }
     }
 }

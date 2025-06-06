@@ -1,7 +1,7 @@
-﻿// Views/AddItemForm.cs
-using System;
+﻿using System;
 using System.Drawing;
 using System.Windows.Forms;
+using ProjectEstimatorApp.Styles;
 
 namespace ProjectEstimatorApp.Views
 {
@@ -9,8 +9,8 @@ namespace ProjectEstimatorApp.Views
     {
         public string ItemName => txtName.Text.Trim();
         public string Unit => txtUnit.Text.Trim();
-        public decimal Quantity => decimal.Parse(txtQuantity.Text);
-        public decimal Price => decimal.Parse(txtPrice.Text);
+        public decimal Quantity => decimal.TryParse(txtQuantity.Text, out var q) ? q : 0;
+        public decimal Price => decimal.TryParse(txtPrice.Text, out var p) ? p : 0;
 
         private TextBox txtName;
         private TextBox txtUnit;
@@ -23,86 +23,76 @@ namespace ProjectEstimatorApp.Views
         {
             InitializeForm();
             InitializeControls();
-            SetupLayout();
         }
 
         private void InitializeForm()
         {
+            StyleHelper.Forms.ApplyDialogStyle(this);
             Text = "Add New Item";
-            FormBorderStyle = FormBorderStyle.FixedDialog;
-            StartPosition = FormStartPosition.CenterParent;
-            ClientSize = new Size(350, 220);
-            BackColor = Color.White;
-            Font = new Font("Segoe UI", 9);
+            ClientSize = new Size(360, 280);
         }
 
         private void InitializeControls()
         {
-            txtName = new TextBox
-            {
-                Text = "Name",
-                Top = 20,
-                Left = 20,
-                Width = 310,
-                BorderStyle = BorderStyle.FixedSingle
-            };
+            txtName = StyleHelper.Inputs.TextBox("Name");
+            txtName.Location = new Point(20, 20);
+            txtName.Width = 320;
 
-            txtUnit = new TextBox
-            {
-                Text = "Unit",
-                Top = 60,
-                Left = 20,
-                Width = 310,
-                BorderStyle = BorderStyle.FixedSingle
-            };
+            txtUnit = StyleHelper.Inputs.TextBox("Unit");
+            txtUnit.Location = new Point(20, 70);
+            txtUnit.Width = 150;
 
-            txtQuantity = new TextBox
-            {
-                Text = "1",
-                Top = 100,
-                Left = 20,
-                Width = 310,
-                BorderStyle = BorderStyle.FixedSingle
-            };
+            txtQuantity = StyleHelper.Inputs.TextBox("Quantity");
+            txtQuantity.Location = new Point(190, 70);
+            txtQuantity.Width = 150;
 
-            txtPrice = new TextBox
-            {
-                Text = "0",
-                Top = 140,
-                Left = 20,
-                Width = 310,
-                BorderStyle = BorderStyle.FixedSingle
-            };
+            txtPrice = StyleHelper.Inputs.TextBox("Price");
+            txtPrice.Location = new Point(20, 120);
+            txtPrice.Width = 320;
 
-            btnOk = new Button
-            {
-                Text = "OK",
-                DialogResult = DialogResult.OK,
-                Top = 180,
-                Left = 180,
-                Width = 80,
-                FlatStyle = FlatStyle.Flat,
-                BackColor = Color.White
-            };
+            btnOk = StyleHelper.Buttons.Primary("OK", 100);
+            btnOk.Location = new Point(140, 190);
+            btnOk.DialogResult = DialogResult.OK;
 
-            btnCancel = new Button
-            {
-                Text = "Cancel",
-                DialogResult = DialogResult.Cancel,
-                Top = 180,
-                Left = 270,
-                Width = 80,
-                FlatStyle = FlatStyle.Flat,
-                BackColor = Color.White
-            };
+            btnCancel = StyleHelper.Buttons.Secondary("Cancel", 100);
+            btnCancel.Location = new Point(250, 190);
+            btnCancel.DialogResult = DialogResult.Cancel;
+
+            txtQuantity.KeyPress += NumericInput_KeyPress;
+            txtPrice.KeyPress += NumericInput_KeyPress;
 
             Controls.AddRange(new Control[] { txtName, txtUnit, txtQuantity, txtPrice, btnOk, btnCancel });
-        }
 
-        private void SetupLayout()
-        {
             AcceptButton = btnOk;
             CancelButton = btnCancel;
+        }
+
+        private void NumericInput_KeyPress(object sender, KeyPressEventArgs e)
+        {
+            if (!char.IsControl(e.KeyChar) && !char.IsDigit(e.KeyChar) && e.KeyChar != '.')
+                e.Handled = true;
+
+            if (e.KeyChar == '.' && ((sender as TextBox)?.Text.IndexOf('.') > -1))
+                e.Handled = true;
+        }
+
+        protected override void OnFormClosing(FormClosingEventArgs e)
+        {
+            if (DialogResult == DialogResult.OK)
+            {
+                if (string.IsNullOrWhiteSpace(ItemName))
+                {
+                    MessageBox.Show("Please enter item name", "Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    e.Cancel = true;
+                    return;
+                }
+                if (Quantity <= 0 || Price < 0)
+                {
+                    MessageBox.Show("Quantity must be positive and price non-negative", "Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    e.Cancel = true;
+                }
+            }
+            base.OnFormClosing(e);
         }
     }
 }

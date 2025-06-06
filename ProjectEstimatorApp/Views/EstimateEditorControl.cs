@@ -1,10 +1,11 @@
-﻿using ProjectEstimatorApp.Models;
-using ProjectEstimatorApp.Services;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Drawing;
 using System.Windows.Forms;
+using ProjectEstimatorApp.Models;
+using ProjectEstimatorApp.Services;
+using ProjectEstimatorApp.Styles;
 
 namespace ProjectEstimatorApp.Views
 {
@@ -26,49 +27,114 @@ namespace ProjectEstimatorApp.Views
             _estimateEditor = estimateEditor ?? throw new ArgumentNullException(nameof(estimateEditor));
             InitializeControls();
             SetupLayout();
+            ApplyStyles();
         }
 
         private void InitializeControls()
         {
-            _worksGrid = new DataGridView
-            {
-                Dock = DockStyle.Top,
-                Height = 200,
-                AutoGenerateColumns = true,
-                BackgroundColor = Color.White,
-                BorderStyle = BorderStyle.None,
-                Font = new Font("Segoe UI", 9)
-            };
+            _worksGrid = new DataGridView { Dock = DockStyle.Fill, AutoGenerateColumns = true };
+            StyleHelper.Grids.ApplyDataGridStyle(_worksGrid);
 
-            _materialsGrid = new DataGridView
-            {
-                Dock = DockStyle.Top,
-                Height = 200,
-                AutoGenerateColumns = true,
-                BackgroundColor = Color.White,
-                BorderStyle = BorderStyle.None,
-                Font = new Font("Segoe UI", 9)
-            };
+            _materialsGrid = new DataGridView { Dock = DockStyle.Fill, AutoGenerateColumns = true };
+            StyleHelper.Grids.ApplyDataGridStyle(_materialsGrid);
 
-            _btnAddWork = CreateStyledButton("Add Work");
-            _btnAddMaterial = CreateStyledButton("Add Material");
-            _btnRemoveWork = CreateStyledButton("Remove Work");
-            _btnRemoveMaterial = CreateStyledButton("Remove Material");
+            _btnAddWork = StyleHelper.Buttons.Primary("Add Work", 120);
+            _btnAddMaterial = StyleHelper.Buttons.Primary("Add Material", 120);
+            _btnRemoveWork = StyleHelper.Buttons.Secondary("Remove Work", 120);
+            _btnRemoveMaterial = StyleHelper.Buttons.Secondary("Remove Material", 120);
 
-            _lblWorksTotal = new Label { Text = "Works Total: 0.00", AutoSize = true };
-            _lblMaterialsTotal = new Label { Text = "Materials Total: 0.00", AutoSize = true };
-            _lblEstimateTotal = new Label
-            {
-                Text = "Estimate Total: 0.00",
-                AutoSize = true,
-                Font = new Font("Segoe UI", 9, FontStyle.Bold)
-            };
+            _lblWorksTotal = StyleHelper.Labels.Body("Works Total: 0.00", bold: true);
+            _lblMaterialsTotal = StyleHelper.Labels.Body("Materials Total: 0.00", bold: true);
+            _lblEstimateTotal = StyleHelper.Labels.Header("Estimate Total: 0.00");
 
             _btnAddWork.Click += (s, e) => AddWorkItem();
             _btnAddMaterial.Click += (s, e) => AddMaterialItem();
             _btnRemoveWork.Click += (s, e) => RemoveWorkItem();
             _btnRemoveMaterial.Click += (s, e) => RemoveMaterialItem();
         }
+
+        private void SetupLayout()
+        {
+            var splitContainer = new SplitContainer
+            {
+                Dock = DockStyle.Fill,
+                Orientation = Orientation.Horizontal,
+                SplitterDistance = 280
+            };
+
+            var worksPanel = new Panel { Dock = DockStyle.Fill };
+            var worksHeader = new Panel
+            {
+                Dock = DockStyle.Top,
+                Height = 35,
+                BackColor = StyleHelper.Config.AccentColor
+            };
+            var worksLabel = new Label
+            {
+                Text = "WORKS",
+                Dock = DockStyle.Fill,
+                TextAlign = ContentAlignment.MiddleCenter,
+                ForeColor = Color.White,
+                Font = new Font(StyleHelper.Config.NormalFont, FontStyle.Bold)
+            };
+            worksHeader.Controls.Add(worksLabel);
+            worksPanel.Controls.Add(_worksGrid);
+            worksPanel.Controls.Add(worksHeader);
+
+            var materialsPanel = new Panel { Dock = DockStyle.Fill };
+            var materialsHeader = new Panel
+            {
+                Dock = DockStyle.Top,
+                Height = 35,
+                BackColor = StyleHelper.Config.AccentColor
+            };
+            var materialsLabel = new Label
+            {
+                Text = "MATERIALS",
+                Dock = DockStyle.Fill,
+                TextAlign = ContentAlignment.MiddleCenter,
+                ForeColor = Color.White,
+                Font = new Font(StyleHelper.Config.NormalFont, FontStyle.Bold)
+            };
+            materialsHeader.Controls.Add(materialsLabel);
+            materialsPanel.Controls.Add(_materialsGrid);
+            materialsPanel.Controls.Add(materialsHeader);
+
+            splitContainer.Panel1.Controls.Add(worksPanel);
+            splitContainer.Panel2.Controls.Add(materialsPanel);
+
+            var buttonsPanel = new FlowLayoutPanel
+            {
+                Dock = DockStyle.Top,
+                FlowDirection = FlowDirection.LeftToRight,
+                BackColor = StyleHelper.Config.ElementBackgroundColor,
+                Height = 50,
+                Padding = new Padding(10),
+                AutoSize = true,
+            };
+            buttonsPanel.Controls.AddRange(new Control[] { _btnAddWork, _btnRemoveWork, _btnAddMaterial, _btnRemoveMaterial });
+
+            var totalsPanel = new FlowLayoutPanel
+            {
+                Dock = DockStyle.Bottom,
+                FlowDirection = FlowDirection.RightToLeft,
+                BackColor = StyleHelper.Config.ElementBackgroundColor,
+                Height = 50,
+                Padding = new Padding(10, 0, 20, 0),
+                AutoSize = true
+            };
+            totalsPanel.Controls.AddRange(new Control[] { _lblEstimateTotal, _lblMaterialsTotal, _lblWorksTotal });
+
+            Controls.Add(splitContainer);
+            Controls.Add(buttonsPanel);
+            Controls.Add(totalsPanel);
+        }
+
+        private void ApplyStyles()
+        {
+            BackColor = StyleHelper.Config.BackgroundColor;
+        }
+
         public void SetCurrentItem(object item)
         {
             _estimateEditor.SetCurrentItem(item);
@@ -77,8 +143,6 @@ namespace ProjectEstimatorApp.Views
 
         private void UpdateData()
         {
-            if (_estimateEditor == null) return;
-
             _worksGrid.DataSource = null;
             _materialsGrid.DataSource = null;
 
@@ -128,56 +192,6 @@ namespace ProjectEstimatorApp.Views
                 _estimateEditor.RemoveMaterialItem(_materialsGrid.CurrentRow.Index);
                 UpdateData();
             }
-        }
-
-        private Button CreateStyledButton(string text)
-        {
-            return new Button
-            {
-                Text = text,
-                FlatStyle = FlatStyle.Flat,
-                BackColor = Color.White,
-                Font = new Font("Segoe UI", 9),
-                Height = 30,
-                Margin = new Padding(3)
-            };
-        }
-
-        private void SetupLayout()
-        {
-            var buttonsPanel = new FlowLayoutPanel
-            {
-                Dock = DockStyle.Top,
-                FlowDirection = FlowDirection.LeftToRight,
-                BackColor = Color.FromArgb(240, 240, 240),
-                Height = 40,
-                Padding = new Padding(5)
-            };
-
-            var totalsPanel = new FlowLayoutPanel
-            {
-                Dock = DockStyle.Bottom,
-                FlowDirection = FlowDirection.LeftToRight,
-                BackColor = Color.FromArgb(240, 240, 240),
-                Height = 40,
-                Padding = new Padding(5)
-            };
-
-            buttonsPanel.Controls.AddRange(new Control[] { _btnAddWork, _btnRemoveWork, _btnAddMaterial, _btnRemoveMaterial });
-            totalsPanel.Controls.AddRange(new Control[] { _lblWorksTotal, _lblMaterialsTotal, _lblEstimateTotal });
-
-            Controls.Add(_materialsGrid);
-            Controls.Add(buttonsPanel);
-            Controls.Add(_worksGrid);
-            Controls.Add(totalsPanel);
-
-            BackColor = Color.White;
-
-
-            Controls.Add(_materialsGrid);
-            Controls.Add(buttonsPanel);
-            Controls.Add(_worksGrid);
-            Controls.Add(totalsPanel);
         }
     }
 }

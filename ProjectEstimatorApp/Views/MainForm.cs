@@ -1,10 +1,12 @@
 ﻿// Views/MainForm.cs
+
+
 using System.Drawing;
 using System.Linq;
 using System.Windows.Forms;
 using ProjectEstimatorApp.Models;
 using ProjectEstimatorApp.Services;
-using FontAwesome.Sharp;
+using ProjectEstimatorApp.Styles;
 
 namespace ProjectEstimatorApp.Views
 {
@@ -37,64 +39,91 @@ namespace ProjectEstimatorApp.Views
             _calculationService = calculationService;
 
             InitializeComponent();
+            StyleHelper.Forms.ApplyMainFormStyle(this);
             InitializeControls();
             InitializeProjectTree();
         }
 
         private void InitializeControls()
         {
-            // Main form settings
-            Text = "Project Estimator";
-            Width = 1200;
-            Height = 800;
-            BackColor = Color.White;
-            Font = new Font("Segoe UI", 9);
-
-            // Tree view
-            _projectTree = new TreeView
+            var mainPanel = new TableLayoutPanel
             {
-                Dock = DockStyle.Left,
-                Width = 300,
-                BackColor = Color.FromArgb(240, 240, 240),
-                BorderStyle = BorderStyle.None,
-                Font = new Font("Segoe UI", 10),
-                ShowLines = false,
-                ShowPlusMinus = false,
-                FullRowSelect = true
+                Dock = DockStyle.Fill,
+                ColumnCount = 1,
+                RowCount = 2,
             };
-            _projectTree.AfterSelect += ProjectTree_AfterSelect;
+            mainPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 70));
+            mainPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
 
-            // Buttons panel
             var buttonsPanel = new FlowLayoutPanel
             {
-                Dock = DockStyle.Top,
-                Height = 60,
-                BackColor = Color.FromArgb(52, 152, 219),
-                Padding = new Padding(10),
-                FlowDirection = FlowDirection.LeftToRight
+                Dock = DockStyle.Fill,
+                BackColor = StyleHelper.Config.ElementBackgroundColor,
+                FlowDirection = FlowDirection.LeftToRight,
+                WrapContents = false,
+                AutoSize = false,
+                Padding = new Padding(10, 12, 10, 12),
+                Height = 70
             };
 
-            _btnNewProject = CreateStyledButton("New Project", IconChar.FileAlt);
-            _btnSaveProject = CreateStyledButton("Save", IconChar.Save);
-            _btnLoadProject = CreateStyledButton("Load", IconChar.FolderOpen);
-            _btnAddFloor = CreateStyledButton("Add Floor", IconChar.LayerGroup);
-            _btnAddRoom = CreateStyledButton("Add Room", IconChar.DoorOpen);
-            _btnAddEstimate = CreateStyledButton("Add Estimate", IconChar.PlusCircle);
-            _btnShowTotals = CreateStyledButton("Totals", IconChar.Calculator);
+            _btnNewProject = StyleHelper.Buttons.Primary("New Project", 120);
+            _btnSaveProject = StyleHelper.Buttons.Primary("Save Project", 120);
+            _btnLoadProject = StyleHelper.Buttons.Primary("Load Project", 120);
+            _btnAddFloor = StyleHelper.Buttons.Primary("Add Floor", 120);
+            _btnAddRoom = StyleHelper.Buttons.Primary("Add Room", 120);
+            _btnAddEstimate = StyleHelper.Buttons.Primary("Add Estimate", 120);
+            _btnShowTotals = StyleHelper.Buttons.Primary("Show Totals", 120);
 
             buttonsPanel.Controls.AddRange(new Control[] {
                 _btnNewProject, _btnSaveProject, _btnLoadProject,
                 _btnAddFloor, _btnAddRoom, _btnAddEstimate, _btnShowTotals
             });
 
-            // Estimate editor
+            _projectTree = new TreeView
+            {
+                Dock = DockStyle.Left,
+                Width = 300,
+                BackColor = StyleHelper.Config.ElementBackgroundColor,
+                BorderStyle = BorderStyle.None,
+                Font = StyleHelper.Config.NormalFont,
+                ForeColor = StyleHelper.Config.TextColor,
+                ShowLines = false,
+                ShowPlusMinus = false,
+                ShowRootLines = false,
+                FullRowSelect = true,
+                HideSelection = false,
+                HotTracking = true
+            };
+            _projectTree.AfterSelect += ProjectTree_AfterSelect;
+
+            _projectTree.DrawMode = TreeViewDrawMode.OwnerDrawAll;
+            _projectTree.DrawNode += (s, e) =>
+            {
+                if (e.Node == null) return;
+                bool isSelected = (e.State & TreeNodeStates.Selected) != 0;
+                Color fore = isSelected ? Color.White : StyleHelper.Config.TextColor;
+                Color back = isSelected ? StyleHelper.Config.AccentColor : StyleHelper.Config.ElementBackgroundColor;
+
+                using (Brush backBrush = new SolidBrush(back))
+                    e.Graphics.FillRectangle(backBrush, e.Bounds);
+
+                TextRenderer.DrawText(e.Graphics, e.Node.Text, StyleHelper.Config.NormalFont, e.Bounds, fore, TextFormatFlags.Left | TextFormatFlags.VerticalCenter);
+            };
+
             _estimateEditorControl = new EstimateEditorControl(_estimateEditor)
             {
                 Dock = DockStyle.Fill,
-                BackColor = Color.White
+                BackColor = StyleHelper.Config.BackgroundColor
             };
 
-            // Event handlers
+            var contentPanel = new Panel { Dock = DockStyle.Fill };
+            contentPanel.Controls.Add(_estimateEditorControl);
+            contentPanel.Controls.Add(_projectTree);
+
+            mainPanel.Controls.Add(buttonsPanel, 0, 0);
+            mainPanel.Controls.Add(contentPanel, 0, 1);
+            Controls.Add(mainPanel);
+
             _btnNewProject.Click += (s, e) => CreateNewProject();
             _btnSaveProject.Click += (s, e) => SaveProject();
             _btnLoadProject.Click += (s, e) => LoadProject();
@@ -102,77 +131,57 @@ namespace ProjectEstimatorApp.Views
             _btnAddRoom.Click += (s, e) => AddRoom();
             _btnAddEstimate.Click += (s, e) => AddEstimate();
             _btnShowTotals.Click += (s, e) => ShowTotals();
-
-            // Добавление элементов
-            Controls.Add(_estimateEditorControl);
-            Controls.Add(buttonsPanel);
-            Controls.Add(_projectTree);
-        }
-
-        private Button CreateStyledButton(string text, IconChar icon, Color? bgColor = null)
-        {
-            var btn = new Button
-            {
-                Text = text,
-                Height = 40,
-                Width = 120,
-                FlatStyle = FlatStyle.Flat,
-                BackColor = bgColor ?? Color.FromArgb(52, 152, 219),
-                ForeColor = Color.White,
-                Font = new Font("Segoe UI", 9, FontStyle.Bold),
-                TextImageRelation = TextImageRelation.ImageBeforeText,
-                Image = icon.ToBitmap(16, Color.White),
-                Cursor = Cursors.Hand
-            };
-
-            btn.FlatAppearance.BorderSize = 0;
-            btn.FlatAppearance.MouseOverBackColor = Color.FromArgb(41, 128, 185);
-            btn.FlatAppearance.MouseDownBackColor = Color.FromArgb(32, 102, 148);
-
-            return btn;
-        }
-        private void InitializeProjectTree()
-        {
-            _projectTree.Nodes.Clear();
-            if (_projectManager.CurrentProject != null)
-            {
-                var projectNode = _projectTree.Nodes.Add(_projectManager.CurrentProject.Name);
-                projectNode.Tag = _projectManager.CurrentProject;
-
-                foreach (var estimate in _projectManager.CurrentProject.ProjectEstimates)
-                {
-                    var estimateNode = projectNode.Nodes.Add(estimate.Category);
-                    estimateNode.Tag = estimate;
-                }
-
-                foreach (var floor in _projectManager.CurrentProject.Floors)
-                {
-                    var floorNode = projectNode.Nodes.Add(floor.Name);
-                    floorNode.Tag = floor;
-
-                    foreach (var room in floor.Rooms)
-                    {
-                        var roomNode = floorNode.Nodes.Add($"{room.Name} ({room.Width}x{room.Height})");
-                        roomNode.Tag = room;
-
-                        foreach (var estimate in room.Estimates)
-                        {
-                            var estimateNode = roomNode.Nodes.Add(estimate.Category);
-                            estimateNode.Tag = estimate;
-                        }
-                    }
-                }
-                projectNode.Expand();
-            }
         }
 
         private void ProjectTree_AfterSelect(object sender, TreeViewEventArgs e)
         {
             if (e.Node?.Tag != null)
-            {
                 _estimateEditorControl.SetCurrentItem(e.Node.Tag);
-            }
         }
+
+        private void InitializeProjectTree()
+        {
+            _projectTree.BeginUpdate();
+            _projectTree.Nodes.Clear();
+
+            if (_projectManager.CurrentProject == null)
+            {
+                _projectTree.EndUpdate();
+                return;
+            }
+
+            var projectNode = new TreeNode(_projectManager.CurrentProject.Name)
+            {
+                Tag = _projectManager.CurrentProject,
+                NodeFont = new Font(StyleHelper.Config.NormalFont, FontStyle.Bold)
+            };
+
+            var estimatesNode = projectNode.Nodes.Add("Project Estimates");
+            estimatesNode.NodeFont = new Font(StyleHelper.Config.NormalFont, FontStyle.Italic);
+            foreach (var estimate in _projectManager.CurrentProject.ProjectEstimates)
+                estimatesNode.Nodes.Add(new TreeNode(estimate.Category) { Tag = estimate });
+
+            foreach (var floor in _projectManager.CurrentProject.Floors)
+            {
+                var floorNode = projectNode.Nodes.Add(floor.Name);
+                floorNode.Tag = floor;
+                floorNode.NodeFont = new Font(StyleHelper.Config.NormalFont, FontStyle.Regular);
+                foreach (var room in floor.Rooms)
+                {
+                    var roomNode = floorNode.Nodes.Add($"{room.Name} ({room.Width}x{room.Height})");
+                    roomNode.Tag = room;
+                    var roomEstimates = roomNode.Nodes.Add("Estimates");
+                    roomEstimates.NodeFont = new Font(StyleHelper.Config.NormalFont, FontStyle.Italic);
+                    foreach (var estimate in room.Estimates)
+                        roomEstimates.Nodes.Add(new TreeNode(estimate.Category) { Tag = estimate });
+                }
+            }
+
+            _projectTree.Nodes.Add(projectNode);
+            projectNode.Expand();
+            _projectTree.EndUpdate();
+        }
+
 
         private void CreateNewProject()
         {
@@ -253,34 +262,32 @@ namespace ProjectEstimatorApp.Views
 
             using (var dialog = new InputDialog("Add Estimate", "Enter estimate category:"))
             {
-                if (dialog.ShowDialog() == DialogResult.OK)
+                if (dialog.ShowDialog() == DialogResult.OK && !string.IsNullOrWhiteSpace(dialog.InputText))
                 {
-                    // Проверяем, что выбрано (проект, этаж или комната)
-                    if (_projectTree.SelectedNode?.Tag is Project project)
-                    {
-                        // Добавляем оценку на уровне проекта
-                        _structureService.AddEstimateToProject(dialog.InputText);
-                    }
-                    else if (_projectTree.SelectedNode?.Tag is Floor floor)
-                    {
-                        // Добавляем оценку на уровне этажа
-                        _structureService.AddEstimateToFloor(floor.Name, dialog.InputText);
-                    }
-                    else if (_projectTree.SelectedNode?.Tag is Room room)
-                    {
-                        // Добавляем оценку на уровне комнаты
-                        var floorName = (_projectTree.SelectedNode?.Parent?.Tag as Floor)?.Name;
-                        if (floorName != null)
-                        {
-                            _structureService.AddEstimate(floorName, room.Name, dialog.InputText);
-                        }
-                    }
-                    else
-                    {
-                        // Если ничего не выбрано или выбрана оценка, добавляем на уровень проекта по умолчанию
-                        _structureService.AddEstimateToProject(dialog.InputText);
-                    }
+                    var selected = _projectTree.SelectedNode?.Tag;
 
+                    switch (selected)
+                    {
+                        case Project project:
+                            _structureService.AddEstimateToProject(dialog.InputText);
+                            break;
+                        case Floor floor:
+                            _structureService.AddEstimateToFloor(floor.Name, dialog.InputText);
+                            break;
+                        case Room room:
+                            var floorNode = _projectTree.SelectedNode?.Parent;
+                            if (floorNode?.Tag is Floor parentFloor)
+                            {
+                                _structureService.AddEstimate(parentFloor.Name, room.Name, dialog.InputText);
+                            }
+                            break;
+                        default:
+                            MessageBox.Show("Please select a project, floor or room first",
+                                "Selection Required",
+                                MessageBoxButtons.OK,
+                                MessageBoxIcon.Warning);
+                            break;
+                    }
                     InitializeProjectTree();
                 }
             }
@@ -295,24 +302,34 @@ namespace ProjectEstimatorApp.Views
             totalsForm.ShowDialog();
         }
     }
-
     public class InputDialog : Form
     {
-        public string InputText => txtInput.Text;
+        public string InputText => txtInput.Text.Trim();
         private TextBox txtInput;
-
         public InputDialog(string title, string prompt)
         {
+            StyleHelper.Forms.ApplyDialogStyle(this);
             Text = title;
-            FormBorderStyle = FormBorderStyle.FixedDialog;
-            StartPosition = FormStartPosition.CenterParent;
-            ClientSize = new System.Drawing.Size(300, 100);
-
-            var lblPrompt = new Label { Text = prompt, Left = 10, Top = 10, Width = 280 };
-            txtInput = new TextBox { Left = 10, Top = 30, Width = 280 };
-            var btnOk = new Button { Text = "OK", Left = 120, Top = 60, Width = 80, DialogResult = DialogResult.OK };
-            var btnCancel = new Button { Text = "Cancel", Left = 210, Top = 60, Width = 80, DialogResult = DialogResult.Cancel };
-
+            ClientSize = new Size(320, 140);
+            var lblPrompt = new Label
+            {
+                Text = prompt,
+                Font = StyleHelper.Config.NormalFont,
+                ForeColor = StyleHelper.Config.TextColor,
+                Location = new Point(10, 10),
+                Size = new Size(300, 20),
+                AutoSize = false
+            };
+            txtInput = StyleHelper.Inputs.TextBox();
+            txtInput.Location = new Point(10, 40);
+            txtInput.Width = 300;
+            txtInput.Height = 30;
+            var btnOk = StyleHelper.Buttons.Primary("OK", 100);
+            btnOk.DialogResult = DialogResult.OK;
+            btnOk.Location = new Point(110, 85);
+            var btnCancel = StyleHelper.Buttons.Secondary("Cancel", 100);
+            btnCancel.DialogResult = DialogResult.Cancel;
+            btnCancel.Location = new Point(220, 85);
             Controls.AddRange(new Control[] { lblPrompt, txtInput, btnOk, btnCancel });
             AcceptButton = btnOk;
             CancelButton = btnCancel;
