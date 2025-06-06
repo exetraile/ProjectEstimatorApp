@@ -1,10 +1,10 @@
 ﻿// Views/MainForm.cs
-using System;
 using System.Drawing;
 using System.Linq;
 using System.Windows.Forms;
 using ProjectEstimatorApp.Models;
 using ProjectEstimatorApp.Services;
+using FontAwesome.Sharp;
 
 namespace ProjectEstimatorApp.Views
 {
@@ -57,7 +57,10 @@ namespace ProjectEstimatorApp.Views
                 Width = 300,
                 BackColor = Color.FromArgb(240, 240, 240),
                 BorderStyle = BorderStyle.None,
-                Font = new Font("Segoe UI", 10)
+                Font = new Font("Segoe UI", 10),
+                ShowLines = false,
+                ShowPlusMinus = false,
+                FullRowSelect = true
             };
             _projectTree.AfterSelect += ProjectTree_AfterSelect;
 
@@ -65,19 +68,19 @@ namespace ProjectEstimatorApp.Views
             var buttonsPanel = new FlowLayoutPanel
             {
                 Dock = DockStyle.Top,
-                FlowDirection = FlowDirection.LeftToRight,
-                Height = 50,
-                BackColor = Color.FromArgb(240, 240, 240),
-                Padding = new Padding(5)
+                Height = 60,
+                BackColor = Color.FromArgb(52, 152, 219),
+                Padding = new Padding(10),
+                FlowDirection = FlowDirection.LeftToRight
             };
 
-            _btnNewProject = CreateStyledButton("New Project");
-            _btnSaveProject = CreateStyledButton("Save Project");
-            _btnLoadProject = CreateStyledButton("Load Project");
-            _btnAddFloor = CreateStyledButton("Add Floor");
-            _btnAddRoom = CreateStyledButton("Add Room");
-            _btnAddEstimate = CreateStyledButton("Add Estimate");
-            _btnShowTotals = CreateStyledButton("Show Totals");
+            _btnNewProject = CreateStyledButton("New Project", IconChar.FileAlt);
+            _btnSaveProject = CreateStyledButton("Save", IconChar.Save);
+            _btnLoadProject = CreateStyledButton("Load", IconChar.FolderOpen);
+            _btnAddFloor = CreateStyledButton("Add Floor", IconChar.LayerGroup);
+            _btnAddRoom = CreateStyledButton("Add Room", IconChar.DoorOpen);
+            _btnAddEstimate = CreateStyledButton("Add Estimate", IconChar.PlusCircle);
+            _btnShowTotals = CreateStyledButton("Totals", IconChar.Calculator);
 
             buttonsPanel.Controls.AddRange(new Control[] {
                 _btnNewProject, _btnSaveProject, _btnLoadProject,
@@ -100,23 +103,33 @@ namespace ProjectEstimatorApp.Views
             _btnAddEstimate.Click += (s, e) => AddEstimate();
             _btnShowTotals.Click += (s, e) => ShowTotals();
 
-            // Add controls to form
+            // Добавление элементов
             Controls.Add(_estimateEditorControl);
             Controls.Add(buttonsPanel);
             Controls.Add(_projectTree);
         }
-        private Button CreateStyledButton(string text)
+
+        private Button CreateStyledButton(string text, IconChar icon, Color? bgColor = null)
         {
-            return new Button
+            var btn = new Button
             {
                 Text = text,
                 Height = 40,
-                Width = 100,
+                Width = 120,
                 FlatStyle = FlatStyle.Flat,
-                BackColor = Color.White,
-                Font = new Font("Segoe UI", 9),
-                Margin = new Padding(3)
+                BackColor = bgColor ?? Color.FromArgb(52, 152, 219),
+                ForeColor = Color.White,
+                Font = new Font("Segoe UI", 9, FontStyle.Bold),
+                TextImageRelation = TextImageRelation.ImageBeforeText,
+                Image = icon.ToBitmap(16, Color.White),
+                Cursor = Cursors.Hand
             };
+
+            btn.FlatAppearance.BorderSize = 0;
+            btn.FlatAppearance.MouseOverBackColor = Color.FromArgb(41, 128, 185);
+            btn.FlatAppearance.MouseDownBackColor = Color.FromArgb(32, 102, 148);
+
+            return btn;
         }
         private void InitializeProjectTree()
         {
