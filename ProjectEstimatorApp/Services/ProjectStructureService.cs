@@ -33,19 +33,44 @@ namespace ProjectEstimatorApp.Services
             ValidateProjectExists();
             ValidateName(floorName, "Floor name");
             ValidateName(roomName, "Room name");
-            ValidateDimensions(width, height);
+
+            // Проверки безопасности
+            if (width <= 0.1 || height <= 0.1 || width > 50 || height > 50)
+                throw new ArgumentException("Размеры комнаты должны быть от 0.1 до 50 метров");
+
+            if (roomName.Length > 50)
+                throw new ArgumentException("Название комнаты не должно превышать 50 символов");
 
             var floor = GetFloor(floorName);
-            if (floor.Rooms.Any(r =>
-                string.Equals(r.Name, roomName, StringComparison.OrdinalIgnoreCase)))
-                throw new ArgumentException($"Room '{roomName}' already exists on floor '{floorName}'");
+
+            if (floor.Rooms.Count >= 100)
+                throw new InvalidOperationException("Превышен лимит комнат на этаже (максимум 100)");
+
+            if (floor.Rooms.Any(r => string.Equals(r.Name, roomName, StringComparison.OrdinalIgnoreCase)))
+                throw new ArgumentException($"Комната '{roomName}' уже существует на этаже '{floorName}'");
 
             floor.Rooms.Add(new Room
             {
                 Name = roomName.Trim(),
-                Width = width,
-                Height = height
+                Width = Math.Round(width, 2),
+                Height = Math.Round(height, 2)
             });
+
+            UpdateModifiedDate();
+        }
+
+        public void RemoveFloor(string floorName)
+        {
+            ValidateProjectExists();
+            var floor = GetFloor(floorName);
+
+            if (floor.Rooms.Any())
+                throw new InvalidOperationException("Нельзя удалить этаж с комнатами. Сначала удалите все комнаты.");
+
+            if (floor.FloorEstimates.Any())
+                throw new InvalidOperationException("Нельзя удалить этаж с привязанными сметами.");
+
+            _projectManager.CurrentProject.Floors.Remove(floor);
             UpdateModifiedDate();
         }
 
@@ -99,14 +124,6 @@ namespace ProjectEstimatorApp.Services
                 throw new ArgumentException($"Estimate '{category}' already exists in room '{roomName}'");
 
             room.Estimates.Add(new Estimate { Category = category.Trim() });
-            UpdateModifiedDate();
-        }
-
-        public void RemoveFloor(string floorName)
-        {
-            ValidateProjectExists();
-            var floor = GetFloor(floorName);
-            _projectManager.CurrentProject.Floors.Remove(floor);
             UpdateModifiedDate();
         }
 

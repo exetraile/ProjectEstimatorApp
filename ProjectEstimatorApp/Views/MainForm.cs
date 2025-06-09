@@ -1,6 +1,4 @@
-﻿// Views/MainForm.cs
-
-
+﻿using System;
 using System.Drawing;
 using System.Linq;
 using System.Windows.Forms;
@@ -46,26 +44,28 @@ namespace ProjectEstimatorApp.Views
 
         private void InitializeControls()
         {
+            // Main panel layout
             var mainPanel = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
                 ColumnCount = 1,
-                RowCount = 2,
+                RowCount = 2
             };
             mainPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 70));
             mainPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
 
+            // Buttons panel
             var buttonsPanel = new FlowLayoutPanel
             {
                 Dock = DockStyle.Fill,
                 BackColor = StyleHelper.Config.ElementBackgroundColor,
                 FlowDirection = FlowDirection.LeftToRight,
                 WrapContents = false,
-                AutoSize = false,
                 Padding = new Padding(10, 12, 10, 12),
                 Height = 70
             };
 
+            // Initialize buttons
             _btnNewProject = StyleHelper.Buttons.Primary("New Project", 120);
             _btnSaveProject = StyleHelper.Buttons.Primary("Save Project", 120);
             _btnLoadProject = StyleHelper.Buttons.Primary("Load Project", 120);
@@ -79,6 +79,7 @@ namespace ProjectEstimatorApp.Views
                 _btnAddFloor, _btnAddRoom, _btnAddEstimate, _btnShowTotals
             });
 
+            // TreeView setup
             _projectTree = new TreeView
             {
                 Dock = DockStyle.Left,
@@ -87,43 +88,30 @@ namespace ProjectEstimatorApp.Views
                 BorderStyle = BorderStyle.None,
                 Font = StyleHelper.Config.NormalFont,
                 ForeColor = StyleHelper.Config.TextColor,
-                ShowLines = false,
-                ShowPlusMinus = false,
-                ShowRootLines = false,
+                ShowLines = true,
+                ShowPlusMinus = true,
                 FullRowSelect = true,
-                HideSelection = false,
-                HotTracking = true
-            };
-            _projectTree.AfterSelect += ProjectTree_AfterSelect;
-
-            _projectTree.DrawMode = TreeViewDrawMode.OwnerDrawAll;
-            _projectTree.DrawNode += (s, e) =>
-            {
-                if (e.Node == null) return;
-                bool isSelected = (e.State & TreeNodeStates.Selected) != 0;
-                Color fore = isSelected ? Color.White : StyleHelper.Config.TextColor;
-                Color back = isSelected ? StyleHelper.Config.AccentColor : StyleHelper.Config.ElementBackgroundColor;
-
-                using (Brush backBrush = new SolidBrush(back))
-                    e.Graphics.FillRectangle(backBrush, e.Bounds);
-
-                TextRenderer.DrawText(e.Graphics, e.Node.Text, StyleHelper.Config.NormalFont, e.Bounds, fore, TextFormatFlags.Left | TextFormatFlags.VerticalCenter);
+                HideSelection = false
             };
 
+            // Estimate Editor
             _estimateEditorControl = new EstimateEditorControl(_estimateEditor)
             {
                 Dock = DockStyle.Fill,
                 BackColor = StyleHelper.Config.BackgroundColor
             };
 
+            // Content panel
             var contentPanel = new Panel { Dock = DockStyle.Fill };
             contentPanel.Controls.Add(_estimateEditorControl);
             contentPanel.Controls.Add(_projectTree);
 
+            // Assemble main form
             mainPanel.Controls.Add(buttonsPanel, 0, 0);
             mainPanel.Controls.Add(contentPanel, 0, 1);
             Controls.Add(mainPanel);
 
+            // Event handlers
             _btnNewProject.Click += (s, e) => CreateNewProject();
             _btnSaveProject.Click += (s, e) => SaveProject();
             _btnLoadProject.Click += (s, e) => LoadProject();
@@ -131,67 +119,107 @@ namespace ProjectEstimatorApp.Views
             _btnAddRoom.Click += (s, e) => AddRoom();
             _btnAddEstimate.Click += (s, e) => AddEstimate();
             _btnShowTotals.Click += (s, e) => ShowTotals();
-        }
 
-        private void ProjectTree_AfterSelect(object sender, TreeViewEventArgs e)
-        {
-            if (e.Node?.Tag != null)
-                _estimateEditorControl.SetCurrentItem(e.Node.Tag);
+            _projectTree.AfterSelect += (s, e) =>
+            {
+                if (e.Node?.Tag != null)
+                    _estimateEditorControl.SetCurrentItem(e.Node.Tag);
+            };
+
+            _projectTree.BeforeExpand += (s, e) =>
+            {
+                if (e.Node?.Tag is Floor floor &&
+                    e.Node.Nodes.Count == 1 &&
+                    e.Node.Nodes[0].Text == "loading...")
+                {
+                    e.Node.Nodes.Clear();
+                    e.Node.Text = $"▼ {floor.Name}";
+
+                    if (floor.Rooms != null)
+                    {
+                        foreach (var room in floor.Rooms)
+                        {
+                            var roomNode = new TreeNode($"  {room.Name} ({room.Width}x{room.Height})")
+                            {
+                                Tag = room,
+                                NodeFont = StyleHelper.Config.NormalFont,
+                                ForeColor = StyleHelper.Config.TextColor
+                            };
+                            e.Node.Nodes.Add(roomNode);
+                        }
+                    }
+                }
+            };
+
+            _projectTree.BeforeCollapse += (s, e) =>
+            {
+                if (e.Node?.Tag is Floor floor)
+                {
+                    e.Node.Text = $"► {floor.Name}";
+                }
+            };
         }
 
         private void InitializeProjectTree()
         {
             _projectTree.BeginUpdate();
-            _projectTree.Nodes.Clear();
+            try
+            {
+                _projectTree.Nodes.Clear();
 
-            if (_projectManager.CurrentProject == null)
+                if (_projectManager.CurrentProject == null)
+                    return;
+
+                // Project node
+                var projectNode = new TreeNode($"▼ {_projectManager.CurrentProject.Name}")
+                {
+                    Tag = _projectManager.CurrentProject,
+                    NodeFont = new Font(StyleHelper.Config.NormalFont, FontStyle.Bold),
+                    ForeColor = StyleHelper.Config.TextColor
+                };
+
+                // Floors
+                if (_projectManager.CurrentProject.Floors != null)
+                {
+                    foreach (var floor in _projectManager.CurrentProject.Floors)
+                    {
+                        var hasRooms = floor.Rooms != null && floor.Rooms.Count > 0;
+                        var floorNode = new TreeNode($"► {floor.Name}")
+                        {
+                            Tag = floor,
+                            NodeFont = new Font(StyleHelper.Config.NormalFont,
+                                hasRooms ? FontStyle.Bold : FontStyle.Regular),
+                            ForeColor = hasRooms ?
+                                StyleHelper.Config.AccentColor :
+                                StyleHelper.Config.SecondaryTextColor
+                        };
+
+                        // Add dummy node if has rooms
+                        if (hasRooms)
+                        {
+                            floorNode.Nodes.Add("loading...");
+                        }
+
+                        projectNode.Nodes.Add(floorNode);
+                    }
+                }
+
+                _projectTree.Nodes.Add(projectNode);
+                projectNode.Expand();
+            }
+            finally
             {
                 _projectTree.EndUpdate();
-                return;
             }
-
-            var projectNode = new TreeNode(_projectManager.CurrentProject.Name)
-            {
-                Tag = _projectManager.CurrentProject,
-                NodeFont = new Font(StyleHelper.Config.NormalFont, FontStyle.Bold)
-            };
-
-            var estimatesNode = projectNode.Nodes.Add("Project Estimates");
-            estimatesNode.NodeFont = new Font(StyleHelper.Config.NormalFont, FontStyle.Italic);
-            foreach (var estimate in _projectManager.CurrentProject.ProjectEstimates)
-                estimatesNode.Nodes.Add(new TreeNode(estimate.Category) { Tag = estimate });
-
-            foreach (var floor in _projectManager.CurrentProject.Floors)
-            {
-                var floorNode = projectNode.Nodes.Add(floor.Name);
-                floorNode.Tag = floor;
-                floorNode.NodeFont = new Font(StyleHelper.Config.NormalFont, FontStyle.Regular);
-                foreach (var room in floor.Rooms)
-                {
-                    var roomNode = floorNode.Nodes.Add($"{room.Name} ({room.Width}x{room.Height})");
-                    roomNode.Tag = room;
-                    var roomEstimates = roomNode.Nodes.Add("Estimates");
-                    roomEstimates.NodeFont = new Font(StyleHelper.Config.NormalFont, FontStyle.Italic);
-                    foreach (var estimate in room.Estimates)
-                        roomEstimates.Nodes.Add(new TreeNode(estimate.Category) { Tag = estimate });
-                }
-            }
-
-            _projectTree.Nodes.Add(projectNode);
-            projectNode.Expand();
-            _projectTree.EndUpdate();
         }
-
 
         private void CreateNewProject()
         {
-            using (var dialog = new InputDialog("New Project", "Enter project name:"))
+            string projectName = ShowInputDialog("New Project", "Enter project name:");
+            if (!string.IsNullOrEmpty(projectName))
             {
-                if (dialog.ShowDialog() == DialogResult.OK)
-                {
-                    _projectManager.CreateNewProject(dialog.InputText);
-                    InitializeProjectTree();
-                }
+                _projectManager.CreateNewProject(projectName);
+                InitializeProjectTree();
             }
         }
 
@@ -202,7 +230,7 @@ namespace ProjectEstimatorApp.Views
             using (var saveDialog = new SaveFileDialog())
             {
                 saveDialog.Filter = "Project Files (*.json)|*.json";
-                if (saveDialog.ShowDialog() == DialogResult.OK)
+                if (saveDialog.ShowDialog(this) == DialogResult.OK)
                 {
                     _projectManager.SaveProject(saveDialog.FileName);
                 }
@@ -214,7 +242,7 @@ namespace ProjectEstimatorApp.Views
             using (var openDialog = new OpenFileDialog())
             {
                 openDialog.Filter = "Project Files (*.json)|*.json";
-                if (openDialog.ShowDialog() == DialogResult.OK)
+                if (openDialog.ShowDialog(this) == DialogResult.OK)
                 {
                     _projectManager.LoadProject(openDialog.FileName);
                     InitializeProjectTree();
@@ -226,13 +254,11 @@ namespace ProjectEstimatorApp.Views
         {
             if (!_projectManager.ProjectExists()) return;
 
-            using (var dialog = new InputDialog("Add Floor", "Enter floor name:"))
+            string floorName = ShowInputDialog("Add Floor", "Enter floor name:");
+            if (!string.IsNullOrEmpty(floorName))
             {
-                if (dialog.ShowDialog() == DialogResult.OK)
-                {
-                    _structureService.AddFloor(dialog.InputText);
-                    InitializeProjectTree();
-                }
+                _structureService.AddFloor(floorName);
+                InitializeProjectTree();
             }
         }
 
@@ -240,16 +266,43 @@ namespace ProjectEstimatorApp.Views
         {
             if (!_projectManager.ProjectExists()) return;
 
-            using (var dialog = new AddRoomForm())
+            using (var dialog = new Form())
             {
-                if (dialog.ShowDialog() == DialogResult.OK)
+                dialog.Text = "Add Room";
+                dialog.Width = 300;
+                dialog.Height = 200;
+                dialog.FormBorderStyle = FormBorderStyle.FixedDialog;
+                dialog.StartPosition = FormStartPosition.CenterParent;
+
+                var lblName = new Label { Text = "Room name:", Top = 20, Left = 20, Width = 100 };
+                var txtName = new TextBox { Top = 20, Left = 120, Width = 150 };
+
+                var lblWidth = new Label { Text = "Width:", Top = 50, Left = 20, Width = 100 };
+                var txtWidth = new NumericUpDown { Top = 50, Left = 120, Width = 150, Minimum = 0.1m, Maximum = 100, DecimalPlaces = 2 };
+
+                var lblHeight = new Label { Text = "Height:", Top = 80, Left = 20, Width = 100 };
+                var txtHeight = new NumericUpDown { Top = 80, Left = 120, Width = 150, Minimum = 0.1m, Maximum = 100, DecimalPlaces = 2 };
+
+                var btnOk = new Button { Text = "OK", DialogResult = DialogResult.OK, Top = 120, Left = 120, Width = 75 };
+                var btnCancel = new Button { Text = "Cancel", DialogResult = DialogResult.Cancel, Top = 120, Left = 200, Width = 75 };
+
+                dialog.Controls.AddRange(new Control[] { lblName, txtName, lblWidth, txtWidth, lblHeight, txtHeight, btnOk, btnCancel });
+                dialog.AcceptButton = btnOk;
+                dialog.CancelButton = btnCancel;
+
+                if (dialog.ShowDialog(this) == DialogResult.OK)
                 {
-                    var floorName = _projectTree.SelectedNode?.Tag is Floor floor ? floor.Name :
-                        _structureService.GetFloorNames().FirstOrDefault();
+                    var floorName = _projectTree.SelectedNode?.Tag is Floor floor
+                        ? floor.Name
+                        : _structureService.GetFloorNames().FirstOrDefault();
 
                     if (floorName != null)
                     {
-                        _structureService.AddRoom(floorName, dialog.RoomName, dialog.Width, dialog.Height);
+                        _structureService.AddRoom(
+                            floorName,
+                            txtName.Text,
+                            (double)txtWidth.Value,
+                            (double)txtHeight.Value);
                         InitializeProjectTree();
                     }
                 }
@@ -260,36 +313,36 @@ namespace ProjectEstimatorApp.Views
         {
             if (!_projectManager.ProjectExists()) return;
 
-            using (var dialog = new InputDialog("Add Estimate", "Enter estimate category:"))
+            string category = ShowInputDialog("Add Estimate", "Enter estimate category:");
+            if (!string.IsNullOrEmpty(category))
             {
-                if (dialog.ShowDialog() == DialogResult.OK && !string.IsNullOrWhiteSpace(dialog.InputText))
-                {
-                    var selected = _projectTree.SelectedNode?.Tag;
+                var selected = _projectTree.SelectedNode?.Tag;
 
-                    switch (selected)
-                    {
-                        case Project project:
-                            _structureService.AddEstimateToProject(dialog.InputText);
-                            break;
-                        case Floor floor:
-                            _structureService.AddEstimateToFloor(floor.Name, dialog.InputText);
-                            break;
-                        case Room room:
-                            var floorNode = _projectTree.SelectedNode?.Parent;
-                            if (floorNode?.Tag is Floor parentFloor)
-                            {
-                                _structureService.AddEstimate(parentFloor.Name, room.Name, dialog.InputText);
-                            }
-                            break;
-                        default:
-                            MessageBox.Show("Please select a project, floor or room first",
-                                "Selection Required",
-                                MessageBoxButtons.OK,
-                                MessageBoxIcon.Warning);
-                            break;
-                    }
-                    InitializeProjectTree();
+                if (selected is Project project)
+                {
+                    _structureService.AddEstimateToProject(category);
                 }
+                else if (selected is Floor floor)
+                {
+                    _structureService.AddEstimateToFloor(floor.Name, category);
+                }
+                else if (selected is Room room)
+                {
+                    var floorNode = _projectTree.SelectedNode?.Parent;
+                    if (floorNode?.Tag is Floor parentFloor)
+                    {
+                        _structureService.AddEstimate(parentFloor.Name, room.Name, category);
+                    }
+                }
+                else
+                {
+                    MessageBox.Show(this,
+                        "Please select a project, floor or room first",
+                        "Selection Required",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Warning);
+                }
+                InitializeProjectTree();
             }
         }
 
@@ -298,41 +351,57 @@ namespace ProjectEstimatorApp.Views
             if (!_projectManager.ProjectExists()) return;
 
             var summary = _calculationService.CalculateProjectSummary(_projectManager.CurrentProject);
-            var totalsForm = new TotalsForm(summary);
-            totalsForm.ShowDialog();
-        }
-    }
-    public class InputDialog : Form
-    {
-        public string InputText => txtInput.Text.Trim();
-        private TextBox txtInput;
-        public InputDialog(string title, string prompt)
-        {
-            StyleHelper.Forms.ApplyDialogStyle(this);
-            Text = title;
-            ClientSize = new Size(320, 140);
-            var lblPrompt = new Label
+
+            using (var totalsForm = new Form())
             {
-                Text = prompt,
-                Font = StyleHelper.Config.NormalFont,
-                ForeColor = StyleHelper.Config.TextColor,
-                Location = new Point(10, 10),
-                Size = new Size(300, 20),
-                AutoSize = false
-            };
-            txtInput = StyleHelper.Inputs.TextBox();
-            txtInput.Location = new Point(10, 40);
-            txtInput.Width = 300;
-            txtInput.Height = 30;
-            var btnOk = StyleHelper.Buttons.Primary("OK", 100);
-            btnOk.DialogResult = DialogResult.OK;
-            btnOk.Location = new Point(110, 85);
-            var btnCancel = StyleHelper.Buttons.Secondary("Cancel", 100);
-            btnCancel.DialogResult = DialogResult.Cancel;
-            btnCancel.Location = new Point(220, 85);
-            Controls.AddRange(new Control[] { lblPrompt, txtInput, btnOk, btnCancel });
-            AcceptButton = btnOk;
-            CancelButton = btnCancel;
+                totalsForm.Text = "Project Totals";
+                totalsForm.Width = 600;
+                totalsForm.Height = 400;
+                totalsForm.StartPosition = FormStartPosition.CenterParent;
+
+                var grid = new DataGridView
+                {
+                    Dock = DockStyle.Fill,
+                    DataSource = summary.FloorSummaries
+                };
+                StyleHelper.Grids.ApplyDataGridStyle(grid);
+
+                var lblTotal = new Label
+                {
+                    Text = $"Overall Total: {summary.OverallTotal:N2}",
+                    Dock = DockStyle.Bottom,
+                    TextAlign = ContentAlignment.MiddleRight,
+                    Font = new Font(StyleHelper.Config.NormalFont, FontStyle.Bold),
+                    Height = 40
+                };
+
+                totalsForm.Controls.Add(grid);
+                totalsForm.Controls.Add(lblTotal);
+                totalsForm.ShowDialog(this);
+            }
+        }
+
+        private string ShowInputDialog(string title, string prompt)
+        {
+            using (var form = new Form())
+            {
+                form.Text = title;
+                form.Width = 300;
+                form.Height = 150;
+                form.FormBorderStyle = FormBorderStyle.FixedDialog;
+                form.StartPosition = FormStartPosition.CenterParent;
+
+                var label = new Label { Text = prompt, Left = 10, Top = 20, Width = 280 };
+                var textBox = new TextBox { Left = 10, Top = 50, Width = 280 };
+                var btnOk = new Button { Text = "OK", DialogResult = DialogResult.OK, Left = 110, Top = 80, Width = 75 };
+
+                form.Controls.Add(label);
+                form.Controls.Add(textBox);
+                form.Controls.Add(btnOk);
+                form.AcceptButton = btnOk;
+
+                return form.ShowDialog(this) == DialogResult.OK ? textBox.Text : string.Empty;
+            }
         }
     }
 }

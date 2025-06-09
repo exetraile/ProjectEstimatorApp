@@ -9,25 +9,26 @@ namespace ProjectEstimatorApp.Styles
     {
         public static class Config
         {
-            // Цветовая схема
-            public static Color BackgroundColor = Color.FromArgb(18, 18, 18); 
-            public static Color ElementBackgroundColor = Color.FromArgb(30, 30, 30); 
-            public static Color AccentColor = Color.FromArgb(138, 43, 226); 
-            public static Color TextColor = Color.FromArgb(255, 255, 255); 
-            public static Color SecondaryTextColor = Color.FromArgb(176, 176, 176); 
-            public static Color SuccessColor = Color.FromArgb(76, 175, 80); 
-            public static Color ErrorColor = Color.FromArgb(244, 67, 54); 
-            public static Color WarningColor = Color.FromArgb(255, 165, 0); 
-            public static Color BorderColor = Color.FromArgb(45, 45, 45); 
+            // Основные цвета (нежный темно-серый фон + зеленая палитра)
+            public static Color BackgroundColor = Color.FromArgb(30, 35, 40);         // Тёмно-серый (как GitHub Dark, но мягче)
+            public static Color ElementBackgroundColor = Color.FromArgb(40, 45, 50);  // Чуть светлее фона
+            public static Color AccentColor = Color.FromArgb(46, 160, 67);           // GitHub-зелёный (#2ea043)
+            public static Color TextColor = Color.FromArgb(220, 220, 220);           // Почти белый, но мягкий
+            public static Color SecondaryTextColor = Color.FromArgb(160, 170, 180); // Сероватый текст
+            public static Color SuccessColor = Color.FromArgb(56, 200, 80);         // Ярко-зелёный (успех)
+            public static Color ErrorColor = Color.FromArgb(240, 80, 80);            // Мягкий красный
+            public static Color WarningColor = Color.FromArgb(220, 180, 60);        // Тёплый жёлтый
+            public static Color BorderColor = Color.FromArgb(60, 65, 70);           // Границы чуть светлее фона
 
+            public static Color PlaceholderForeColor = Color.FromArgb(120, 130, 140); // Серый плейсхолдер
+
+            // Шрифты (можно оставить как было)
             public static Font HeaderFont = new Font("Segoe UI", 16, FontStyle.Bold);
             public static Font NormalFont = new Font("Segoe UI", 12);
             public static Font SmallFont = new Font("Segoe UI", 11);
 
-            public static int CornerRadius = 8; 
-            public static Padding DefaultPadding = new Padding(10);
-
-            public static Color PlaceholderForeColor = Color.FromArgb(176, 176, 176); 
+            public static int CornerRadius = 6;  // Скругление как в GitHub
+            public static Padding DefaultPadding = new Padding(16);  // Больше воздуха
         }
 
         public static class Forms
