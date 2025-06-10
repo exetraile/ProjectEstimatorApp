@@ -34,7 +34,6 @@ namespace ProjectEstimatorApp.Services
             ValidateName(floorName, "Floor name");
             ValidateName(roomName, "Room name");
 
-            // Проверки безопасности
             if (width <= 0.1 || height <= 0.1 || width > 50 || height > 50)
                 throw new ArgumentException("Размеры комнаты должны быть от 0.1 до 50 метров");
 
@@ -74,7 +73,6 @@ namespace ProjectEstimatorApp.Services
             UpdateModifiedDate();
         }
 
-        // Добавление оценки на уровне проекта
         public void AddEstimateToProject(string category)
         {
             ValidateProjectExists();
@@ -91,7 +89,7 @@ namespace ProjectEstimatorApp.Services
             UpdateModifiedDate();
         }
 
-        // Добавление оценки на уровне этажа
+
         public void AddEstimateToFloor(string floorName, string category)
         {
             ValidateProjectExists();

@@ -44,7 +44,6 @@ namespace ProjectEstimatorApp.Views
 
         private void InitializeControls()
         {
-            // Main panel layout
             var mainPanel = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
@@ -54,7 +53,6 @@ namespace ProjectEstimatorApp.Views
             mainPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 70));
             mainPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
 
-            // Buttons panel
             var buttonsPanel = new FlowLayoutPanel
             {
                 Dock = DockStyle.Fill,
@@ -65,7 +63,6 @@ namespace ProjectEstimatorApp.Views
                 Height = 70
             };
 
-            // Initialize buttons
             _btnNewProject = StyleHelper.Buttons.Primary("New Project", 120);
             _btnSaveProject = StyleHelper.Buttons.Primary("Save Project", 120);
             _btnLoadProject = StyleHelper.Buttons.Primary("Load Project", 120);
@@ -79,7 +76,6 @@ namespace ProjectEstimatorApp.Views
                 _btnAddFloor, _btnAddRoom, _btnAddEstimate, _btnShowTotals
             });
 
-            // TreeView setup
             _projectTree = new TreeView
             {
                 Dock = DockStyle.Left,
@@ -94,24 +90,20 @@ namespace ProjectEstimatorApp.Views
                 HideSelection = false
             };
 
-            // Estimate Editor
             _estimateEditorControl = new EstimateEditorControl(_estimateEditor)
             {
                 Dock = DockStyle.Fill,
                 BackColor = StyleHelper.Config.BackgroundColor
             };
 
-            // Content panel
             var contentPanel = new Panel { Dock = DockStyle.Fill };
             contentPanel.Controls.Add(_estimateEditorControl);
             contentPanel.Controls.Add(_projectTree);
 
-            // Assemble main form
             mainPanel.Controls.Add(buttonsPanel, 0, 0);
             mainPanel.Controls.Add(contentPanel, 0, 1);
             Controls.Add(mainPanel);
 
-            // Event handlers
             _btnNewProject.Click += (s, e) => CreateNewProject();
             _btnSaveProject.Click += (s, e) => SaveProject();
             _btnLoadProject.Click += (s, e) => LoadProject();
@@ -170,7 +162,6 @@ namespace ProjectEstimatorApp.Views
                 if (_projectManager.CurrentProject == null)
                     return;
 
-                // Project node
                 var projectNode = new TreeNode($"▼ {_projectManager.CurrentProject.Name}")
                 {
                     Tag = _projectManager.CurrentProject,
@@ -178,7 +169,6 @@ namespace ProjectEstimatorApp.Views
                     ForeColor = StyleHelper.Config.TextColor
                 };
 
-                // Floors
                 if (_projectManager.CurrentProject.Floors != null)
                 {
                     foreach (var floor in _projectManager.CurrentProject.Floors)
@@ -193,8 +183,7 @@ namespace ProjectEstimatorApp.Views
                                 StyleHelper.Config.AccentColor :
                                 StyleHelper.Config.SecondaryTextColor
                         };
-
-                        // Add dummy node if has rooms
+           
                         if (hasRooms)
                         {
                             floorNode.Nodes.Add("loading...");
