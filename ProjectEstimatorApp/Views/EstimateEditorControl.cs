@@ -157,9 +157,13 @@ namespace ProjectEstimatorApp.Views
 
         private void UpdateTotals()
         {
-            _lblWorksTotal.Text = $"Works Total: {_estimateEditor.CalculateWorksTotal():N2}";
-            _lblMaterialsTotal.Text = $"Materials Total: {_estimateEditor.CalculateMaterialsTotal():N2}";
-            _lblEstimateTotal.Text = $"Estimate Total: {_estimateEditor.CalculateEstimateTotal():N2}";
+            decimal worksTotal = _estimateEditor.CalculateWorksTotal();
+            decimal materialsTotal = _estimateEditor.CalculateMaterialsTotal();
+            decimal estimateTotal = _estimateEditor.CalculateEstimateTotal();
+
+            _lblWorksTotal.Text = $"Works Total: {worksTotal:N2}";
+            _lblMaterialsTotal.Text = $"Materials Total: {materialsTotal:N2}";
+            _lblEstimateTotal.Text = $"Estimate Total: {estimateTotal:N2}";
         }
 
         private void AddWorkItem()

@@ -1,41 +1,44 @@
 ﻿using System.Collections.Generic;
 using System;
+using System.Linq;
 
 namespace ProjectEstimatorApp.Models
 {
     public class Project
     {
         public string Name { get; set; } = "Новый проект";
-        public List<Floor> Floors { get; set; } = new List<Floor>();
+        public List<Estimate> Estimates { get; set; } = new List<Estimate>();
         public DateTime CreatedDate { get; set; } = DateTime.Now;
         public DateTime ModifiedDate { get; set; } = DateTime.Now;
-        public List<Estimate> ProjectEstimates { get; set; } = new List<Estimate>();
-    }
-
-    public class Floor
-    {
-        public string Name { get; set; } = "Новый этаж";
-        public List<Room> Rooms { get; set; } = new List<Room>();
-        public List<EstimateItem> Works { get; set; } = new List<EstimateItem>();
-        public List<EstimateItem> Materials { get; set; } = new List<EstimateItem>();
-        public List<Estimate> FloorEstimates { get; set; } = new List<Estimate>();
-    }
-
-    public class Room
-    {
-        public string Name { get; set; } = "Новая комната";
-        public double Width { get; set; }
-        public double Height { get; set; }
-        public List<Estimate> Estimates { get; set; } = new List<Estimate>();
-        public List<EstimateItem> Works { get; set; } = new List<EstimateItem>();
-        public List<EstimateItem> Materials { get; set; } = new List<EstimateItem>();
+        public List<EstimateModel> ProjectEstimates { get; set; } = new List<EstimateModel>();
     }
 
     public class Estimate
     {
+        public string Name { get; set; } = "Новая смета";
+        public List<EstimateDetail> EstimateDetails { get; set; } = new List<EstimateDetail>();
+        public List<EstimateItem> Works { get; set; } = new List<EstimateItem>();
+        public List<EstimateItem> Materials { get; set; } = new List<EstimateItem>();
+        public List<EstimateModel> EstimateEstimates { get; set; } = new List<EstimateModel>();
+    }
+
+    public class EstimateDetail
+    {
+        public string Name { get; set; } = "Новая деталь сметы";
+        public double Width { get; set; }
+        public double Height { get; set; }
+        public List<EstimateModel> Estimates { get; set; } = new List<EstimateModel>();
+        public List<EstimateItem> Works { get; set; } = new List<EstimateItem>();
+        public List<EstimateItem> Materials { get; set; } = new List<EstimateItem>();
+    }
+
+    public class EstimateModel
+    {
         public string Category { get; set; } = "Общие работы";
         public List<EstimateItem> Works { get; set; } = new List<EstimateItem>();
         public List<EstimateItem> Materials { get; set; } = new List<EstimateItem>();
+        public decimal WorksTotal => Works.Sum(w => w.Total);
+        public decimal MaterialsTotal => Materials.Sum(m => m.Total);
     }
 
     public class EstimateItem
@@ -56,34 +59,34 @@ namespace ProjectEstimatorApp.Models
         public decimal ProjectWorksTotal { get; set; }
         public decimal ProjectMaterialsTotal { get; set; }
         public decimal ProjectTotal { get; set; }
-        public List<FloorSummary> FloorSummaries { get; set; } = new List<FloorSummary>();
-        public decimal FloorsWorksTotal { get; set; }
-        public decimal FloorsMaterialsTotal { get; set; }
-        public decimal FloorsTotal { get; set; }
+        public List<EstimateSummary> EstimateSummaries { get; set; } = new List<EstimateSummary>();
+        public decimal EstimatesWorksTotal { get; set; }
+        public decimal EstimatesMaterialsTotal { get; set; }
+        public decimal EstimatesTotal { get; set; }
         public decimal TotalWorks { get; set; }
         public decimal TotalMaterials { get; set; }
         public decimal OverallTotal { get; set; }
     }
 
-    public class FloorSummary
+    public class EstimateSummary
     {
-        public string FloorName { get; set; }
-        public List<EstimateSummary> FloorEstimates { get; set; } = new List<EstimateSummary>();
-        public decimal FloorWorksTotal { get; set; }
-        public decimal FloorMaterialsTotal { get; set; }
-        public decimal FloorTotal { get; set; }
-        public List<RoomSummary> RoomSummaries { get; set; } = new List<RoomSummary>();
-        public decimal RoomsWorksTotal { get; set; }
-        public decimal RoomsMaterialsTotal { get; set; }
-        public decimal RoomsTotal { get; set; }
+        public string EstimateName { get; set; }
+        public List<EstimateSummary> EstimateEstimates { get; set; } = new List<EstimateSummary>();
+        public decimal EstimateWorksTotal { get; set; }
+        public decimal EstimateMaterialsTotal { get; set; }
+        public decimal EstimateTotal { get; set; }
+        public List<EstimateDetailSummary> EstimateDetailSummaries { get; set; } = new List<EstimateDetailSummary>();
+        public decimal EstimateDetailsWorksTotal { get; set; }
+        public decimal EstimateDetailsMaterialsTotal { get; set; }
+        public decimal EstimateDetailsTotal { get; set; }
         public decimal WorksTotal { get; set; }
         public decimal MaterialsTotal { get; set; }
         public decimal Total { get; set; }
     }
 
-    public class RoomSummary
+    public class EstimateDetailSummary
     {
-        public string RoomName { get; set; }
+        public string EstimateDetailName { get; set; }
         public double Area { get; set; }
         public List<EstimateSummary> Estimates { get; set; } = new List<EstimateSummary>();
         public decimal WorksTotal { get; set; }
@@ -91,7 +94,7 @@ namespace ProjectEstimatorApp.Models
         public decimal Total { get; set; }
     }
 
-    public class EstimateSummary
+    public class EstimateModelSummary
     {
         public string Category { get; set; }
         public decimal WorksTotal { get; set; }
@@ -99,3 +102,4 @@ namespace ProjectEstimatorApp.Models
         public decimal Total { get; set; }
     }
 }
+

@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Drawing;
-using System.Linq;
 using System.Windows.Forms;
+using ProjectEstimatorApp.Helper;
 using ProjectEstimatorApp.Models;
 using ProjectEstimatorApp.Services;
 using ProjectEstimatorApp.Styles;
@@ -15,14 +15,8 @@ namespace ProjectEstimatorApp.Views
         private readonly IEstimateEditorService _estimateEditor;
         private readonly ICalculationService _calculationService;
 
-        private TreeView _projectTree;
-        private Button _btnNewProject;
-        private Button _btnSaveProject;
-        private Button _btnLoadProject;
-        private Button _btnAddFloor;
-        private Button _btnAddRoom;
-        private Button _btnAddEstimate;
-        private Button _btnShowTotals;
+        private TreeView _projectTreeView;
+        private Panel _contentPanel;
         private EstimateEditorControl _estimateEditorControl;
 
         public MainForm(
@@ -31,366 +25,384 @@ namespace ProjectEstimatorApp.Views
             IEstimateEditorService estimateEditor,
             ICalculationService calculationService)
         {
-            _projectManager = projectManager;
-            _structureService = structureService;
-            _estimateEditor = estimateEditor;
-            _calculationService = calculationService;
+            _projectManager = projectManager ?? throw new ArgumentNullException(nameof(projectManager));
+            _structureService = structureService ?? throw new ArgumentNullException(nameof(structureService));
+            _estimateEditor = estimateEditor ?? throw new ArgumentNullException(nameof(estimateEditor));
+            _calculationService = calculationService ?? throw new ArgumentNullException(nameof(calculationService));
 
             InitializeComponent();
             StyleHelper.Forms.ApplyMainFormStyle(this);
+            InitializeApplication();
+        }
+
+        private void InitializeApplication()
+        {
             InitializeControls();
-            InitializeProjectTree();
+            SetupLayout();
+            SetupMenu();
+            AttachEventHandlers();
+            UpdateProjectTree();
         }
 
         private void InitializeControls()
         {
-            var mainPanel = new TableLayoutPanel
+            _projectTreeView = new TreeView
             {
                 Dock = DockStyle.Fill,
-                ColumnCount = 1,
-                RowCount = 2
-            };
-            mainPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 70));
-            mainPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-
-            var buttonsPanel = new FlowLayoutPanel
-            {
-                Dock = DockStyle.Fill,
-                BackColor = StyleHelper.Config.ElementBackgroundColor,
-                FlowDirection = FlowDirection.LeftToRight,
-                WrapContents = false,
-                Padding = new Padding(10, 12, 10, 12),
-                Height = 70
-            };
-
-            _btnNewProject = StyleHelper.Buttons.Primary("New Project", 120);
-            _btnSaveProject = StyleHelper.Buttons.Primary("Save Project", 120);
-            _btnLoadProject = StyleHelper.Buttons.Primary("Load Project", 120);
-            _btnAddFloor = StyleHelper.Buttons.Primary("Add Floor", 120);
-            _btnAddRoom = StyleHelper.Buttons.Primary("Add Room", 120);
-            _btnAddEstimate = StyleHelper.Buttons.Primary("Add Estimate", 120);
-            _btnShowTotals = StyleHelper.Buttons.Primary("Show Totals", 120);
-
-            buttonsPanel.Controls.AddRange(new Control[] {
-                _btnNewProject, _btnSaveProject, _btnLoadProject,
-                _btnAddFloor, _btnAddRoom, _btnAddEstimate, _btnShowTotals
-            });
-
-            _projectTree = new TreeView
-            {
-                Dock = DockStyle.Left,
-                Width = 300,
-                BackColor = StyleHelper.Config.ElementBackgroundColor,
                 BorderStyle = BorderStyle.None,
-                Font = StyleHelper.Config.NormalFont,
+                BackColor = StyleHelper.Config.ElementBackgroundColor,
                 ForeColor = StyleHelper.Config.TextColor,
-                ShowLines = true,
-                ShowPlusMinus = true,
-                FullRowSelect = true,
-                HideSelection = false
+                Font = StyleHelper.Config.NormalFont
             };
 
-            _estimateEditorControl = new EstimateEditorControl(_estimateEditor)
+            _contentPanel = new Panel
             {
                 Dock = DockStyle.Fill,
                 BackColor = StyleHelper.Config.BackgroundColor
             };
 
-            var contentPanel = new Panel { Dock = DockStyle.Fill };
-            contentPanel.Controls.Add(_estimateEditorControl);
-            contentPanel.Controls.Add(_projectTree);
-
-            mainPanel.Controls.Add(buttonsPanel, 0, 0);
-            mainPanel.Controls.Add(contentPanel, 0, 1);
-            Controls.Add(mainPanel);
-
-            _btnNewProject.Click += (s, e) => CreateNewProject();
-            _btnSaveProject.Click += (s, e) => SaveProject();
-            _btnLoadProject.Click += (s, e) => LoadProject();
-            _btnAddFloor.Click += (s, e) => AddFloor();
-            _btnAddRoom.Click += (s, e) => AddRoom();
-            _btnAddEstimate.Click += (s, e) => AddEstimate();
-            _btnShowTotals.Click += (s, e) => ShowTotals();
-
-            _projectTree.AfterSelect += (s, e) =>
+            _estimateEditorControl = new EstimateEditorControl(_estimateEditor)
             {
-                if (e.Node?.Tag != null)
-                    _estimateEditorControl.SetCurrentItem(e.Node.Tag);
-            };
-
-            _projectTree.BeforeExpand += (s, e) =>
-            {
-                if (e.Node?.Tag is Floor floor &&
-                    e.Node.Nodes.Count == 1 &&
-                    e.Node.Nodes[0].Text == "loading...")
-                {
-                    e.Node.Nodes.Clear();
-                    e.Node.Text = $"▼ {floor.Name}";
-
-                    if (floor.Rooms != null)
-                    {
-                        foreach (var room in floor.Rooms)
-                        {
-                            var roomNode = new TreeNode($"  {room.Name} ({room.Width}x{room.Height})")
-                            {
-                                Tag = room,
-                                NodeFont = StyleHelper.Config.NormalFont,
-                                ForeColor = StyleHelper.Config.TextColor
-                            };
-                            e.Node.Nodes.Add(roomNode);
-                        }
-                    }
-                }
-            };
-
-            _projectTree.BeforeCollapse += (s, e) =>
-            {
-                if (e.Node?.Tag is Floor floor)
-                {
-                    e.Node.Text = $"► {floor.Name}";
-                }
+                Dock = DockStyle.Fill
             };
         }
 
-        private void InitializeProjectTree()
+        private void SetupLayout()
         {
-            _projectTree.BeginUpdate();
+            var mainSplitContainer = new SplitContainer
+            {
+                Dock = DockStyle.Fill,
+                Orientation = Orientation.Horizontal,
+                SplitterDistance = 250,
+                BackColor = StyleHelper.Config.BackgroundColor
+            };
+
+            mainSplitContainer.Panel1.Controls.Add(CreateProjectPanel());
+            mainSplitContainer.Panel2.Controls.Add(_contentPanel);
+            _contentPanel.Controls.Add(_estimateEditorControl);
+            Controls.Add(mainSplitContainer);
+        }
+
+        private Panel CreateProjectPanel()
+        {
+            var panel = new Panel
+            {
+                Dock = DockStyle.Fill,
+                BackColor = StyleHelper.Config.BackgroundColor
+            };
+
+            var header = StyleHelper.Panels.CardPanel();
+            header.Dock = DockStyle.Top;
+            header.Height = 50;
+            header.Margin = new Padding(0, 0, 0, 8);
+
+            var label = StyleHelper.Labels.Header("ПРОЕКТ");
+            label.Dock = DockStyle.Fill;
+            label.TextAlign = ContentAlignment.MiddleCenter;
+            label.ForeColor = StyleHelper.Config.AccentColor;
+
+            header.Controls.Add(label);
+            panel.Controls.Add(_projectTreeView);
+            panel.Controls.Add(header);
+            return panel;
+        }
+
+        private void SetupMenu()
+        {
+            var menuStrip = new MenuStrip();
+            menuStrip.BackColor = StyleHelper.Config.ElementBackgroundColor;
+            menuStrip.ForeColor = Color.White;
+            menuStrip.Renderer = new ToolStripProfessionalRenderer(new MenuColorTable());
+
+            var fileMenu = new ToolStripMenuItem("Файл");
+            fileMenu.ForeColor = Color.White;
+            fileMenu.DropDownItems.AddRange(new ToolStripItem[] {
+                new ToolStripMenuItem("Новый проект", null, NewProjectMenuItem_Click) { ForeColor = Color.White },
+                new ToolStripMenuItem("Открыть проект", null, OpenProjectMenuItem_Click) { ForeColor = Color.White },
+                new ToolStripMenuItem("Сохранить проект", null, SaveProjectMenuItem_Click) { ForeColor = Color.White },
+                new ToolStripSeparator(),
+                new ToolStripMenuItem("Экспорт в PDF", null, ExportToPdfMenuItem_Click) { ForeColor = Color.White },
+                new ToolStripSeparator(),
+                new ToolStripMenuItem("Выход", null, ExitMenuItem_Click) { ForeColor = Color.White }
+            });
+
+            var editMenu = new ToolStripMenuItem("Правка");
+            editMenu.ForeColor = Color.White;
+            editMenu.DropDownItems.AddRange(new ToolStripItem[] {
+                new ToolStripMenuItem("Добавить смету", null, AddEstimateMenuItem_Click) { ForeColor = Color.White },
+                new ToolStripMenuItem("Добавить деталь сметы", null, AddEstimateDetailMenuItem_Click) { ForeColor = Color.White },
+                new ToolStripMenuItem("Удалить смету", null, DeleteEstimateMenuItem_Click) { ForeColor = Color.White },
+                new ToolStripMenuItem("Удалить деталь сметы", null, DeleteEstimateDetailMenuItem_Click) { ForeColor = Color.White },
+                new ToolStripSeparator(),
+                new ToolStripMenuItem("Показать итоги", null, ShowTotalsMenuItem_Click) { ForeColor = Color.White }
+            });
+
+            menuStrip.Items.AddRange(new ToolStripItem[] { fileMenu, editMenu });
+            Controls.Add(menuStrip);
+            MainMenuStrip = menuStrip;
+        }
+
+        private void UpdateProjectTree()
+        {
+            _projectTreeView.Nodes.Clear();
+            if (!_projectManager.ProjectExists()) return;
+
+            var projectNode = new TreeNode(_projectManager.CurrentProject.Name) { Tag = _projectManager.CurrentProject };
+
+            foreach (var estimate in _projectManager.CurrentProject.Estimates)
+            {
+                var estimateNode = new TreeNode(estimate.Name) { Tag = estimate };
+
+                foreach (var detail in estimate.EstimateDetails)
+                    estimateNode.Nodes.Add(new TreeNode(detail.Name) { Tag = detail });
+
+                projectNode.Nodes.Add(estimateNode);
+            }
+
+            _projectTreeView.Nodes.Add(projectNode);
+            projectNode.Expand();
+        }
+
+        private void AttachEventHandlers()
+        {
+            _projectTreeView.AfterSelect += (s, e) => _estimateEditorControl.SetCurrentItem(e.Node?.Tag);
+            _projectTreeView.KeyDown += ProjectTreeView_KeyDown;
+        }
+
+        private void ProjectTreeView_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Delete)
+            {
+                DeleteSelectedNode();
+            }
+        }
+
+        private void DeleteSelectedNode()
+        {
+            if (_projectTreeView.SelectedNode == null) return;
+
+            var selectedItem = _projectTreeView.SelectedNode.Tag;
+
+            if (selectedItem is EstimateDetail detail)
+            {
+                DeleteEstimateDetail(detail);
+            }
+            else if (selectedItem is Estimate estimate)
+            {
+                DeleteEstimate(estimate);
+            }
+        }
+
+        private void NewProjectMenuItem_Click(object sender, EventArgs e)
+        {
+            var projectName = DialogHelper.ShowInputDialog("Новый проект", "Введите название проекта:");
+            if (string.IsNullOrWhiteSpace(projectName)) return;
+
+            _projectManager.CreateNewProject(projectName);
+            UpdateProjectTree();
+        }
+
+        private void OpenProjectMenuItem_Click(object sender, EventArgs e)
+        {
+            using (var dialog = new OpenFileDialog { Filter = "Файлы проекта (*.json)|*.json" })
+            {
+                if (dialog.ShowDialog() != DialogResult.OK) return;
+
+                try
+                {
+                    _projectManager.LoadProject(dialog.FileName);
+                    UpdateProjectTree();
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(ex.Message, "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
+
+        private void SaveProjectMenuItem_Click(object sender, EventArgs e)
+        {
+            using (var dialog = new SaveFileDialog
+            {
+                Filter = "Файлы проекта (*.json)|*.json",
+                FileName = _projectManager.ProjectExists() ? $"{_projectManager.CurrentProject.Name}.json" : "НовыйПроект.json"
+            })
+            {
+                if (dialog.ShowDialog() != DialogResult.OK) return;
+
+                try
+                {
+                    _projectManager.SaveProject(dialog.FileName);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(ex.Message, "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
+
+        private void ExportToPdfMenuItem_Click(object sender, EventArgs e)
+        {
+            if (!_projectManager.ProjectExists())
+            {
+                MessageBox.Show("Не загружен ни один проект для экспорта.", "Внимание", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            using (var dialog = new SaveFileDialog { Filter = "PDF файлы (*.pdf)|*.pdf", FileName = $"{_projectManager.CurrentProject.Name}.pdf" })
+            {
+                if (dialog.ShowDialog() != DialogResult.OK) return;
+
+                try
+                {
+                    var summary = _calculationService.CalculateProjectSummary(_projectManager.CurrentProject);
+                    ExportHelper.ExportToPdf(summary, dialog.FileName);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(ex.Message, "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
+
+        private void ExitMenuItem_Click(object sender, EventArgs e)
+        {
+            Application.Exit();
+        }
+
+        private void AddEstimateMenuItem_Click(object sender, EventArgs e)
+        {
+            var estimateName = DialogHelper.ShowInputDialog("Добавить смету", "Введите название сметы:");
+            if (string.IsNullOrWhiteSpace(estimateName)) return;
+
             try
             {
-                _projectTree.Nodes.Clear();
-
-                if (_projectManager.CurrentProject == null)
-                    return;
-
-                var projectNode = new TreeNode($"▼ {_projectManager.CurrentProject.Name}")
-                {
-                    Tag = _projectManager.CurrentProject,
-                    NodeFont = new Font(StyleHelper.Config.NormalFont, FontStyle.Bold),
-                    ForeColor = StyleHelper.Config.TextColor
-                };
-
-                if (_projectManager.CurrentProject.Floors != null)
-                {
-                    foreach (var floor in _projectManager.CurrentProject.Floors)
-                    {
-                        var hasRooms = floor.Rooms != null && floor.Rooms.Count > 0;
-                        var floorNode = new TreeNode($"► {floor.Name}")
-                        {
-                            Tag = floor,
-                            NodeFont = new Font(StyleHelper.Config.NormalFont,
-                                hasRooms ? FontStyle.Bold : FontStyle.Regular),
-                            ForeColor = hasRooms ?
-                                StyleHelper.Config.AccentColor :
-                                StyleHelper.Config.SecondaryTextColor
-                        };
-           
-                        if (hasRooms)
-                        {
-                            floorNode.Nodes.Add("loading...");
-                        }
-
-                        projectNode.Nodes.Add(floorNode);
-                    }
-                }
-
-                _projectTree.Nodes.Add(projectNode);
-                projectNode.Expand();
+                _structureService.AddEstimate(estimateName);
+                UpdateProjectTree();
             }
-            finally
+            catch (Exception ex)
             {
-                _projectTree.EndUpdate();
+                MessageBox.Show(ex.Message, "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
-        private void CreateNewProject()
+        private void AddEstimateDetailMenuItem_Click(object sender, EventArgs e)
         {
-            string projectName = ShowInputDialog("New Project", "Enter project name:");
-            if (!string.IsNullOrEmpty(projectName))
+            if (!(_projectTreeView.SelectedNode?.Tag is Estimate selectedEstimate))
             {
-                _projectManager.CreateNewProject(projectName);
-                InitializeProjectTree();
+                MessageBox.Show("Пожалуйста, выберите смету для добавления детали.", "Внимание", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            var result = DialogHelper.ShowAddEstimateDetailDialog(this);
+            if (result.EstimateDetailName == null) return;
+
+            try
+            {
+                _structureService.AddEstimateDetail(selectedEstimate.Name, result.EstimateDetailName, result.Width, result.Height);
+                UpdateProjectTree();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message, "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
-        private void SaveProject()
+        private void DeleteEstimateMenuItem_Click(object sender, EventArgs e)
         {
-            if (!_projectManager.ProjectExists()) return;
-
-            using (var saveDialog = new SaveFileDialog())
+            if (!(_projectTreeView.SelectedNode?.Tag is Estimate selectedEstimate))
             {
-                saveDialog.Filter = "Project Files (*.json)|*.json";
-                if (saveDialog.ShowDialog(this) == DialogResult.OK)
-                {
-                    _projectManager.SaveProject(saveDialog.FileName);
-                }
+                MessageBox.Show("Пожалуйста, выберите смету для удаления.", "Внимание", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            DeleteEstimate(selectedEstimate);
+        }
+
+        private void DeleteEstimateDetailMenuItem_Click(object sender, EventArgs e)
+        {
+            if (!(_projectTreeView.SelectedNode?.Tag is EstimateDetail selectedDetail))
+            {
+                MessageBox.Show("Пожалуйста, выберите деталь сметы для удаления.", "Внимание", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            DeleteEstimateDetail(selectedDetail);
+        }
+
+        private void DeleteEstimate(Estimate estimate)
+        {
+            if (MessageBox.Show($"Вы уверены, что хотите удалить смету '{estimate.Name}'?", "Подтверждение удаления",
+                MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes)
+            {
+                return;
+            }
+
+            try
+            {
+                _structureService.RemoveEstimate(estimate.Name);
+                UpdateProjectTree();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message, "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
-        private void LoadProject()
+        private void DeleteEstimateDetail(EstimateDetail detail)
         {
-            using (var openDialog = new OpenFileDialog())
+            if (MessageBox.Show($"Вы уверены, что хотите удалить деталь '{detail.Name}'?", "Подтверждение удаления",
+                MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes)
             {
-                openDialog.Filter = "Project Files (*.json)|*.json";
-                if (openDialog.ShowDialog(this) == DialogResult.OK)
-                {
-                    _projectManager.LoadProject(openDialog.FileName);
-                    InitializeProjectTree();
-                }
+                return;
             }
-        }
 
-        private void AddFloor()
-        {
-            if (!_projectManager.ProjectExists()) return;
-
-            string floorName = ShowInputDialog("Add Floor", "Enter floor name:");
-            if (!string.IsNullOrEmpty(floorName))
+            try
             {
-                _structureService.AddFloor(floorName);
-                InitializeProjectTree();
-            }
-        }
-
-        private void AddRoom()
-        {
-            if (!_projectManager.ProjectExists()) return;
-
-            using (var dialog = new Form())
-            {
-                dialog.Text = "Add Room";
-                dialog.Width = 300;
-                dialog.Height = 200;
-                dialog.FormBorderStyle = FormBorderStyle.FixedDialog;
-                dialog.StartPosition = FormStartPosition.CenterParent;
-
-                var lblName = new Label { Text = "Room name:", Top = 20, Left = 20, Width = 100 };
-                var txtName = new TextBox { Top = 20, Left = 120, Width = 150 };
-
-                var lblWidth = new Label { Text = "Width:", Top = 50, Left = 20, Width = 100 };
-                var txtWidth = new NumericUpDown { Top = 50, Left = 120, Width = 150, Minimum = 0.1m, Maximum = 100, DecimalPlaces = 2 };
-
-                var lblHeight = new Label { Text = "Height:", Top = 80, Left = 20, Width = 100 };
-                var txtHeight = new NumericUpDown { Top = 80, Left = 120, Width = 150, Minimum = 0.1m, Maximum = 100, DecimalPlaces = 2 };
-
-                var btnOk = new Button { Text = "OK", DialogResult = DialogResult.OK, Top = 120, Left = 120, Width = 75 };
-                var btnCancel = new Button { Text = "Cancel", DialogResult = DialogResult.Cancel, Top = 120, Left = 200, Width = 75 };
-
-                dialog.Controls.AddRange(new Control[] { lblName, txtName, lblWidth, txtWidth, lblHeight, txtHeight, btnOk, btnCancel });
-                dialog.AcceptButton = btnOk;
-                dialog.CancelButton = btnCancel;
-
-                if (dialog.ShowDialog(this) == DialogResult.OK)
+                var estimateNode = _projectTreeView.SelectedNode.Parent;
+                if (estimateNode?.Tag is Estimate parentEstimate)
                 {
-                    var floorName = _projectTree.SelectedNode?.Tag is Floor floor
-                        ? floor.Name
-                        : _structureService.GetFloorNames().FirstOrDefault();
-
-                    if (floorName != null)
-                    {
-                        _structureService.AddRoom(
-                            floorName,
-                            txtName.Text,
-                            (double)txtWidth.Value,
-                            (double)txtHeight.Value);
-                        InitializeProjectTree();
-                    }
-                }
-            }
-        }
-
-        private void AddEstimate()
-        {
-            if (!_projectManager.ProjectExists()) return;
-
-            string category = ShowInputDialog("Add Estimate", "Enter estimate category:");
-            if (!string.IsNullOrEmpty(category))
-            {
-                var selected = _projectTree.SelectedNode?.Tag;
-
-                if (selected is Project project)
-                {
-                    _structureService.AddEstimateToProject(category);
-                }
-                else if (selected is Floor floor)
-                {
-                    _structureService.AddEstimateToFloor(floor.Name, category);
-                }
-                else if (selected is Room room)
-                {
-                    var floorNode = _projectTree.SelectedNode?.Parent;
-                    if (floorNode?.Tag is Floor parentFloor)
-                    {
-                        _structureService.AddEstimate(parentFloor.Name, room.Name, category);
-                    }
+                    _structureService.RemoveEstimateDetail(parentEstimate.Name, detail.Name);
+                    UpdateProjectTree();
                 }
                 else
                 {
-                    MessageBox.Show(this,
-                        "Please select a project, floor or room first",
-                        "Selection Required",
-                        MessageBoxButtons.OK,
-                        MessageBoxIcon.Warning);
+                    MessageBox.Show("Не удалось определить родительскую смету для удаляемой детали.", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
-                InitializeProjectTree();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message, "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
-        private void ShowTotals()
+        private void ShowTotalsMenuItem_Click(object sender, EventArgs e)
         {
-            if (!_projectManager.ProjectExists()) return;
+            if (!_projectManager.ProjectExists())
+            {
+                MessageBox.Show("Не загружен ни один проект.", "Внимание", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
 
             var summary = _calculationService.CalculateProjectSummary(_projectManager.CurrentProject);
-
-            using (var totalsForm = new Form())
-            {
-                totalsForm.Text = "Project Totals";
-                totalsForm.Width = 600;
-                totalsForm.Height = 400;
-                totalsForm.StartPosition = FormStartPosition.CenterParent;
-
-                var grid = new DataGridView
-                {
-                    Dock = DockStyle.Fill,
-                    DataSource = summary.FloorSummaries
-                };
-                StyleHelper.Grids.ApplyDataGridStyle(grid);
-
-                var lblTotal = new Label
-                {
-                    Text = $"Overall Total: {summary.OverallTotal:N2}",
-                    Dock = DockStyle.Bottom,
-                    TextAlign = ContentAlignment.MiddleRight,
-                    Font = new Font(StyleHelper.Config.NormalFont, FontStyle.Bold),
-                    Height = 40
-                };
-
-                totalsForm.Controls.Add(grid);
-                totalsForm.Controls.Add(lblTotal);
-                totalsForm.ShowDialog(this);
-            }
+            DialogHelper.ShowTotalsDialog(summary, this);
         }
+    }
 
-        private string ShowInputDialog(string title, string prompt)
-        {
-            using (var form = new Form())
-            {
-                form.Text = title;
-                form.Width = 300;
-                form.Height = 150;
-                form.FormBorderStyle = FormBorderStyle.FixedDialog;
-                form.StartPosition = FormStartPosition.CenterParent;
-
-                var label = new Label { Text = prompt, Left = 10, Top = 20, Width = 280 };
-                var textBox = new TextBox { Left = 10, Top = 50, Width = 280 };
-                var btnOk = new Button { Text = "OK", DialogResult = DialogResult.OK, Left = 110, Top = 80, Width = 75 };
-
-                form.Controls.Add(label);
-                form.Controls.Add(textBox);
-                form.Controls.Add(btnOk);
-                form.AcceptButton = btnOk;
-
-                return form.ShowDialog(this) == DialogResult.OK ? textBox.Text : string.Empty;
-            }
-        }
+    public class MenuColorTable : ProfessionalColorTable
+    {
+        public override Color MenuItemSelected => StyleHelper.Config.AccentColor;
+        public override Color MenuItemSelectedGradientBegin => StyleHelper.Config.AccentColor;
+        public override Color MenuItemSelectedGradientEnd => StyleHelper.Config.AccentColor;
+        public override Color MenuItemBorder => StyleHelper.Config.AccentColor;
+        public override Color MenuItemPressedGradientBegin => StyleHelper.Config.ElementBackgroundColor;
+        public override Color MenuItemPressedGradientEnd => StyleHelper.Config.ElementBackgroundColor;
+        public override Color MenuBorder => StyleHelper.Config.BorderColor;
+        public override Color MenuStripGradientBegin => StyleHelper.Config.ElementBackgroundColor;
+        public override Color MenuStripGradientEnd => StyleHelper.Config.ElementBackgroundColor;
+        public override Color ToolStripDropDownBackground => StyleHelper.Config.ElementBackgroundColor;
+        public override Color ImageMarginGradientBegin => StyleHelper.Config.ElementBackgroundColor;
+        public override Color ImageMarginGradientEnd => StyleHelper.Config.ElementBackgroundColor;
+        public override Color ImageMarginGradientMiddle => StyleHelper.Config.ElementBackgroundColor;
     }
 }

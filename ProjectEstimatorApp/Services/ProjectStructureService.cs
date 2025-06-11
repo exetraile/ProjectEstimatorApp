@@ -15,42 +15,42 @@ namespace ProjectEstimatorApp.Services
             _projectManager = projectManager ?? throw new ArgumentNullException(nameof(projectManager));
         }
 
-        public void AddFloor(string name)
+        public void AddEstimate(string name)
         {
             ValidateProjectExists();
-            ValidateName(name, "Floor name");
+            ValidateName(name, "Estimate name");
 
-            if (_projectManager.CurrentProject.Floors.Any(f =>
-                string.Equals(f.Name, name, StringComparison.OrdinalIgnoreCase)))
-                throw new ArgumentException($"Floor '{name}' already exists");
+            if (_projectManager.CurrentProject.Estimates.Any(e =>
+                string.Equals(e.Name, name, StringComparison.OrdinalIgnoreCase)))
+                throw new ArgumentException($"Estimate '{name}' already exists");
 
-            _projectManager.CurrentProject.Floors.Add(new Floor { Name = name.Trim() });
+            _projectManager.CurrentProject.Estimates.Add(new Estimate { Name = name.Trim() });
             UpdateModifiedDate();
         }
 
-        public void AddRoom(string floorName, string roomName, double width, double height)
+        public void AddEstimateDetail(string estimateName, string estimateDetailName, double width, double height)
         {
             ValidateProjectExists();
-            ValidateName(floorName, "Floor name");
-            ValidateName(roomName, "Room name");
+            ValidateName(estimateName, "Estimate name");
+            ValidateName(estimateDetailName, "EstimateDetail name");
 
             if (width <= 0.1 || height <= 0.1 || width > 50 || height > 50)
-                throw new ArgumentException("Размеры комнаты должны быть от 0.1 до 50 метров");
+                throw new ArgumentException("Размеры EstimateDetail должны быть от 0.1 до 50 метров");
 
-            if (roomName.Length > 50)
-                throw new ArgumentException("Название комнаты не должно превышать 50 символов");
+            if (estimateDetailName.Length > 50)
+                throw new ArgumentException("Название EstimateDetail не должно превышать 50 символов");
 
-            var floor = GetFloor(floorName);
+            var estimate = GetEstimate(estimateName);
 
-            if (floor.Rooms.Count >= 100)
-                throw new InvalidOperationException("Превышен лимит комнат на этаже (максимум 100)");
+            if (estimate.EstimateDetails.Count >= 100)
+                throw new InvalidOperationException("Превышен лимит EstimateDetails на Estimate (максимум 100)");
 
-            if (floor.Rooms.Any(r => string.Equals(r.Name, roomName, StringComparison.OrdinalIgnoreCase)))
-                throw new ArgumentException($"Комната '{roomName}' уже существует на этаже '{floorName}'");
+            if (estimate.EstimateDetails.Any(r => string.Equals(r.Name, estimateDetailName, StringComparison.OrdinalIgnoreCase)))
+                throw new ArgumentException($"EstimateDetail '{estimateDetailName}' уже существует на Estimate '{estimateName}'");
 
-            floor.Rooms.Add(new Room
+            estimate.EstimateDetails.Add(new EstimateDetail
             {
-                Name = roomName.Trim(),
+                Name = estimateDetailName.Trim(),
                 Width = Math.Round(width, 2),
                 Height = Math.Round(height, 2)
             });
@@ -58,18 +58,15 @@ namespace ProjectEstimatorApp.Services
             UpdateModifiedDate();
         }
 
-        public void RemoveFloor(string floorName)
+        public void RemoveEstimate(string estimateName)
         {
             ValidateProjectExists();
-            var floor = GetFloor(floorName);
+            var estimate = GetEstimate(estimateName);
 
-            if (floor.Rooms.Any())
-                throw new InvalidOperationException("Нельзя удалить этаж с комнатами. Сначала удалите все комнаты.");
+            if (estimate.EstimateDetails.Any())
+                throw new InvalidOperationException("Нельзя удалить Estimate с EstimateDetails. Сначала удалите все EstimateDetails.");
 
-            if (floor.FloorEstimates.Any())
-                throw new InvalidOperationException("Нельзя удалить этаж с привязанными сметами.");
-
-            _projectManager.CurrentProject.Floors.Remove(floor);
+            _projectManager.CurrentProject.Estimates.Remove(estimate);
             UpdateModifiedDate();
         }
 
@@ -82,7 +79,7 @@ namespace ProjectEstimatorApp.Services
                 string.Equals(e.Category, category, StringComparison.OrdinalIgnoreCase)))
                 throw new ArgumentException($"Project estimate '{category}' already exists");
 
-            _projectManager.CurrentProject.ProjectEstimates.Add(new Estimate
+            _projectManager.CurrentProject.ProjectEstimates.Add(new EstimateModel
             {
                 Category = category.Trim()
             });
@@ -90,94 +87,94 @@ namespace ProjectEstimatorApp.Services
         }
 
 
-        public void AddEstimateToFloor(string floorName, string category)
+        public void AddEstimateToEstimate(string estimateName, string category)
         {
             ValidateProjectExists();
-            ValidateName(floorName, "Floor name");
+            ValidateName(estimateName, "Estimate name");
             ValidateName(category, "Estimate category");
 
-            var floor = GetFloor(floorName);
+            var estimate = GetEstimate(estimateName);
 
-            if (floor.FloorEstimates.Any(e =>
+            if (estimate.EstimateEstimates.Any(e =>
                 string.Equals(e.Category, category, StringComparison.OrdinalIgnoreCase)))
-                throw new ArgumentException($"Floor estimate '{category}' already exists on floor '{floorName}'");
+                throw new ArgumentException($"Estimate estimate '{category}' already exists on estimate '{estimateName}'");
 
-            floor.FloorEstimates.Add(new Estimate
+            estimate.EstimateEstimates.Add(new EstimateModel
             {
                 Category = category.Trim()
             });
             UpdateModifiedDate();
         }
 
-        public void AddEstimate(string floorName, string roomName, string category)
+        public void AddEstimateModel(string estimateName, string estimateDetailName, string category)
         {
             ValidateProjectExists();
-            ValidateName(floorName, "Floor name");
-            ValidateName(roomName, "Room name");
+            ValidateName(estimateName, "Estimate name");
+            ValidateName(estimateDetailName, "EstimateDetail name");
             ValidateName(category, "Estimate category");
 
-            var room = GetRoom(floorName, roomName);
-            if (room.Estimates.Any(e =>
+            var estimateDetail = GetEstimateDetail(estimateName, estimateDetailName);
+            if (estimateDetail.Estimates.Any(e =>
                 string.Equals(e.Category, category, StringComparison.OrdinalIgnoreCase)))
-                throw new ArgumentException($"Estimate '{category}' already exists in room '{roomName}'");
+                throw new ArgumentException($"Estimate '{category}' already exists in estimateDetail '{estimateDetailName}'");
 
-            room.Estimates.Add(new Estimate { Category = category.Trim() });
+            estimateDetail.Estimates.Add(new EstimateModel { Category = category.Trim() });
             UpdateModifiedDate();
         }
 
-        public void RemoveRoom(string floorName, string roomName)
+        public void RemoveEstimateDetail(string estimateName, string estimateDetailName)
         {
             ValidateProjectExists();
-            var room = GetRoom(floorName, roomName);
-            var floor = GetFloor(floorName);
-            floor.Rooms.Remove(room);
+            var estimateDetail = GetEstimateDetail(estimateName, estimateDetailName);
+            var estimate = GetEstimate(estimateName);
+            estimate.EstimateDetails.Remove(estimateDetail);
             UpdateModifiedDate();
         }
 
-        public void RemoveEstimate(string floorName, string roomName, string category)
+        public void RemoveEstimateModel(string estimateName, string estimateDetailName, string category)
         {
             ValidateProjectExists();
-            var estimate = GetEstimate(floorName, roomName, category);
-            var room = GetRoom(floorName, roomName);
-            room.Estimates.Remove(estimate);
+            var estimateModel = GetEstimateModel(estimateName, estimateDetailName, category);
+            var estimateDetail = GetEstimateDetail(estimateName, estimateDetailName);
+            estimateDetail.Estimates.Remove(estimateModel);
             UpdateModifiedDate();
         }
 
-        public IEnumerable<string> GetFloorNames()
+        public IEnumerable<string> GetEstimateNames()
         {
             ValidateProjectExists();
-            return _projectManager.CurrentProject.Floors.Select(f => f.Name).ToList();
+            return _projectManager.CurrentProject.Estimates.Select(f => f.Name).ToList();
         }
 
-        public IEnumerable<string> GetRoomNames(string floorName)
+        public IEnumerable<string> GetEstimateDetailNames(string estimateName)
         {
             ValidateProjectExists();
-            var floor = GetFloor(floorName);
-            return floor.Rooms.Select(r => r.Name).ToList();
+            var estimate = GetEstimate(estimateName);
+            return estimate.EstimateDetails.Select(r => r.Name).ToList();
         }
 
         #region Private Helpers
-        private Floor GetFloor(string name)
+        private Estimate GetEstimate(string name)
         {
-            var floor = _projectManager.CurrentProject.Floors
+            var estimate = _projectManager.CurrentProject.Estimates
                 .FirstOrDefault(f => string.Equals(f.Name, name, StringComparison.OrdinalIgnoreCase));
-            return floor ?? throw new ArgumentException($"Floor '{name}' not found");
+            return estimate ?? throw new ArgumentException($"Estimate '{name}' not found");
         }
 
-        private Room GetRoom(string floorName, string roomName)
+        private EstimateDetail GetEstimateDetail(string estimateName, string estimateDetailName)
         {
-            var floor = GetFloor(floorName);
-            var room = floor.Rooms
-                .FirstOrDefault(r => string.Equals(r.Name, roomName, StringComparison.OrdinalIgnoreCase));
-            return room ?? throw new ArgumentException($"Room '{roomName}' not found on floor '{floorName}'");
+            var estimate = GetEstimate(estimateName);
+            var estimateDetail = estimate.EstimateDetails
+                .FirstOrDefault(r => string.Equals(r.Name, estimateDetailName, StringComparison.OrdinalIgnoreCase));
+            return estimateDetail ?? throw new ArgumentException($"EstimateDetail '{estimateDetailName}' not found on estimate '{estimateName}'");
         }
 
-        private Estimate GetEstimate(string floorName, string roomName, string category)
+        private EstimateModel GetEstimateModel(string estimateName, string estimateDetailName, string category)
         {
-            var room = GetRoom(floorName, roomName);
-            var estimate = room.Estimates
+            var estimateDetail = GetEstimateDetail(estimateName, estimateDetailName);
+            var estimateModel = estimateDetail.Estimates
                 .FirstOrDefault(e => string.Equals(e.Category, category, StringComparison.OrdinalIgnoreCase));
-            return estimate ?? throw new ArgumentException($"Estimate '{category}' not found in room '{roomName}'");
+            return estimateModel ?? throw new ArgumentException($"Estimate '{category}' not found in estimateDetail '{estimateDetailName}'");
         }
 
         private void ValidateProjectExists()
@@ -205,3 +202,4 @@ namespace ProjectEstimatorApp.Services
         #endregion
     }
 }
+

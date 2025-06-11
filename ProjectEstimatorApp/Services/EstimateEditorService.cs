@@ -21,12 +21,12 @@ namespace ProjectEstimatorApp.Services
                 _currentWorks = estimate.Works;
                 _currentMaterials = estimate.Materials;
             }
-            else if (item is Room room)
+            else if (item is EstimateDetail room)
             {
                 _currentWorks = room.Works;
                 _currentMaterials = room.Materials;
             }
-            else if (item is Floor floor)
+            else if (item is Estimate floor)
             {
                 _currentWorks = floor.Works;
                 _currentMaterials = floor.Materials;

@@ -1,5 +1,4 @@
-﻿// Services/CalculationService.cs
-using System;
+﻿using System;
 using System.Linq;
 using ProjectEstimatorApp.Models;
 
@@ -9,81 +8,72 @@ namespace ProjectEstimatorApp.Services
     {
         public ProjectSummary CalculateProjectSummary(Project project)
         {
+            if (project == null) return new ProjectSummary();
+
             var summary = new ProjectSummary
             {
                 ProjectName = project.Name,
-                CalculationDate = DateTime.Now
+                CalculationDate = DateTime.Now,
+                ProjectEstimates = project.ProjectEstimates?
+                    .Select(e => new EstimateSummary
+                    {
+                        EstimateName = e.Category,
+                        WorksTotal = e.Works.Sum(w => w.Total),
+                        MaterialsTotal = e.Materials.Sum(m => m.Total),
+                        Total = e.WorksTotal + e.MaterialsTotal
+                    })
+                    .ToList(),
+                EstimateSummaries = project.Estimates?
+                    .Select(CalculateEstimateSummary)
+                    .ToList()
             };
 
-            summary.ProjectEstimates = project.ProjectEstimates
-                .Select(CalculateEstimateSummary)
-                .ToList();
+            summary.ProjectWorksTotal = summary.ProjectEstimates?.Sum(e => e.WorksTotal) ?? 0;
+            summary.ProjectMaterialsTotal = summary.ProjectEstimates?.Sum(e => e.MaterialsTotal) ?? 0;
+            summary.ProjectTotal = summary.ProjectEstimates?.Sum(e => e.Total) ?? 0;
 
-            summary.ProjectWorksTotal = summary.ProjectEstimates.Sum(e => e.WorksTotal);
-            summary.ProjectMaterialsTotal = summary.ProjectEstimates.Sum(e => e.MaterialsTotal);
-            summary.ProjectTotal = summary.ProjectWorksTotal + summary.ProjectMaterialsTotal;
-            summary.FloorSummaries = project.Floors.Select(CalculateFloorSummary).ToList();
-            summary.FloorsWorksTotal = summary.FloorSummaries.Sum(f => f.WorksTotal);
-            summary.FloorsMaterialsTotal = summary.FloorSummaries.Sum(f => f.MaterialsTotal);
-            summary.FloorsTotal = summary.FloorsWorksTotal + summary.FloorsMaterialsTotal;
-            summary.TotalWorks = summary.ProjectWorksTotal + summary.FloorsWorksTotal;
-            summary.TotalMaterials = summary.ProjectMaterialsTotal + summary.FloorsMaterialsTotal;
+            summary.EstimatesWorksTotal = summary.EstimateSummaries?.Sum(e => e.WorksTotal) ?? 0;
+            summary.EstimatesMaterialsTotal = summary.EstimateSummaries?.Sum(e => e.MaterialsTotal) ?? 0;
+            summary.EstimatesTotal = summary.EstimateSummaries?.Sum(e => e.Total) ?? 0;
+
+            summary.TotalWorks = summary.ProjectWorksTotal + summary.EstimatesWorksTotal;
+            summary.TotalMaterials = summary.ProjectMaterialsTotal + summary.EstimatesMaterialsTotal;
             summary.OverallTotal = summary.TotalWorks + summary.TotalMaterials;
-
-            return summary;
-        }
-
-        public FloorSummary CalculateFloorSummary(Floor floor)
-        {
-            var summary = new FloorSummary
-            {
-                FloorName = floor.Name
-            };
-
-            summary.FloorEstimates = floor.FloorEstimates
-                .Select(CalculateEstimateSummary)
-                .ToList();
-
-            summary.FloorWorksTotal = summary.FloorEstimates.Sum(e => e.WorksTotal);
-            summary.FloorMaterialsTotal = summary.FloorEstimates.Sum(e => e.MaterialsTotal);
-            summary.FloorTotal = summary.FloorWorksTotal + summary.FloorMaterialsTotal;
-            summary.RoomSummaries = floor.Rooms.Select(CalculateRoomSummary).ToList();
-            summary.RoomsWorksTotal = summary.RoomSummaries.Sum(r => r.WorksTotal);
-            summary.RoomsMaterialsTotal = summary.RoomSummaries.Sum(r => r.MaterialsTotal);
-            summary.RoomsTotal = summary.RoomsWorksTotal + summary.RoomsMaterialsTotal;
-            summary.WorksTotal = summary.FloorWorksTotal + summary.RoomsWorksTotal;
-            summary.MaterialsTotal = summary.FloorMaterialsTotal + summary.RoomsMaterialsTotal;
-            summary.Total = summary.WorksTotal + summary.MaterialsTotal;
-
-            return summary;
-        }
-
-        public RoomSummary CalculateRoomSummary(Room room)
-        {
-            var summary = new RoomSummary
-            {
-                RoomName = room.Name,
-                Area = room.Width * room.Height
-            };
-
-            summary.Estimates = room.Estimates
-                .Select(CalculateEstimateSummary)
-                .ToList();
-            summary.WorksTotal = summary.Estimates.Sum(e => e.WorksTotal);
-            summary.MaterialsTotal = summary.Estimates.Sum(e => e.MaterialsTotal);
-            summary.Total = summary.WorksTotal + summary.MaterialsTotal;
 
             return summary;
         }
 
         public EstimateSummary CalculateEstimateSummary(Estimate estimate)
         {
-            return new EstimateSummary
+            if (estimate == null) return new EstimateSummary();
+
+            var summary = new EstimateSummary
             {
-                Category = estimate.Category,
-                WorksTotal = estimate.Works.Sum(i => i.Total),
-                MaterialsTotal = estimate.Materials.Sum(i => i.Total),
-                Total = estimate.Works.Sum(i => i.Total) + estimate.Materials.Sum(i => i.Total)
+                EstimateName = estimate.Name,
+                WorksTotal = estimate.Works.Sum(w => w.Total),
+                MaterialsTotal = estimate.Materials.Sum(m => m.Total),
+                EstimateDetailSummaries = estimate.EstimateDetails?
+                    .Select(CalculateEstimateDetailSummary)
+                    .ToList()
+            };
+
+            summary.Total = summary.WorksTotal + summary.MaterialsTotal +
+                          (summary.EstimateDetailSummaries?.Sum(d => d.Total) ?? 0);
+
+            return summary;
+        }
+
+        public EstimateDetailSummary CalculateEstimateDetailSummary(EstimateDetail detail)
+        {
+            if (detail == null) return new EstimateDetailSummary();
+
+            return new EstimateDetailSummary
+            {
+                EstimateDetailName = detail.Name,
+                Area = detail.Width * detail.Height,
+                WorksTotal = detail.Works.Sum(w => w.Total),
+                MaterialsTotal = detail.Materials.Sum(m => m.Total),
+                Total = detail.Works.Sum(w => w.Total) + detail.Materials.Sum(m => m.Total)
             };
         }
     }

@@ -1,4 +1,4 @@
-﻿// Services/ICalculationService.cs
+﻿// ICalculationService.cs
 using ProjectEstimatorApp.Models;
 
 namespace ProjectEstimatorApp.Services
@@ -6,8 +6,7 @@ namespace ProjectEstimatorApp.Services
     public interface ICalculationService
     {
         ProjectSummary CalculateProjectSummary(Project project);
-        FloorSummary CalculateFloorSummary(Floor floor);
-        RoomSummary CalculateRoomSummary(Room room);
         EstimateSummary CalculateEstimateSummary(Estimate estimate);
+        EstimateDetailSummary CalculateEstimateDetailSummary(EstimateDetail estimateDetail);
     }
 }

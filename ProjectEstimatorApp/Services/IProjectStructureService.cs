@@ -1,19 +1,18 @@
 ﻿// Services/IProjectStructureService.cs
 using System.Collections.Generic;
-
 namespace ProjectEstimatorApp.Services
 {
     public interface IProjectStructureService
     {
-        void AddFloor(string name);
-        void AddRoom(string floorName, string roomName, double width, double height);
-        void AddEstimate(string floorName, string roomName, string category);
-        void RemoveFloor(string floorName);
-        void RemoveRoom(string floorName, string roomName);
-        void RemoveEstimate(string floorName, string roomName, string category);
-        IEnumerable<string> GetFloorNames();
-        IEnumerable<string> GetRoomNames(string floorName);
+        void AddEstimate(string name);
+        void AddEstimateDetail(string estimateName, string estimateDetailName, double width, double height);
+        void AddEstimateModel(string estimateName, string estimateDetailName, string category);
+        void RemoveEstimate(string estimateName);
+        void RemoveEstimateDetail(string estimateName, string estimateDetailName);
+        void RemoveEstimateModel(string estimateName, string estimateDetailName, string category);
+        IEnumerable<string> GetEstimateNames();
+        IEnumerable<string> GetEstimateDetailNames(string estimateName);
         void AddEstimateToProject(string category);
-        void AddEstimateToFloor(string floorName, string category);
+        void AddEstimateToEstimate(string estimateName, string category);
     }
 }
